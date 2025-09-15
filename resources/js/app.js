@@ -1,9 +1,19 @@
 import axios from 'axios';
+import Alpine from "alpinejs"
 import './bootstrap';
+import persist from '@alpinejs/persist';
 
 //Alpinejs
-import Alpine from "alpinejs"
+Alpine.plugin(persist)
+
 window.Alpine = Alpine
+
+
+Alpine.store("sidebar", {
+    open: Alpine.$persist(true)
+})
+
+
 
 
 Alpine.data("quizPlayer", () => ({

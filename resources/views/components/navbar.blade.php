@@ -9,7 +9,10 @@
     }" 
     class="w-full h-20 bg-[#1A1B1C] text-white flex items-center p-4 justify-between">
     <div>
-        <p class="text-2xl font-mono font-semibold">Quizzo</p>
+        <a href="{{ route('home') }}">
+
+            <p class="text-2xl font-mono font-semibold cursor-pointer">Quizzo</p>
+        </a>
     </div>  
     @if(Auth::check())
         <div>
@@ -30,8 +33,8 @@
     <!-- Modal -->
     <div x-show="open" x-cloak   x-transition:enter.duration.500ms x-transition:leave.duration.400ms
      class="fixed inset-0  backdrop-blur-xs flex items-center justify-center">
-         <div class=" min-h-96  bg-[#1A1B1C] p-6 rounded-lg shadow-xl max-w-md w-full relative ">
-            <p class="text-3xl mt-2 mb-4">Quizzo</p>
+         <div class=" min-h-96  bg-[#1A1B1C] p-8 rounded-lg shadow-xl max-w-md w-full relative ">
+            <p class="text-3xl mt-2 font-sans font-semibold mb-8">Quizzo</p>
             <!-- Login Form -->
             <template x-if="mode === 'login'">
                 <div>          
@@ -101,7 +104,7 @@
             <!-- Kapat Butonu -->
             <button 
                 @click="open = false; errors = {};" 
-                class="absolute top-2 right-2 text-gray-600 hover:text-gray-500 cursor-pointer"
+                class="absolute top-2 right-2  hover:text-gray-300  cursor-pointer"
             >
                 <i class="fa-solid fa-circle-xmark"></i>
             </button>

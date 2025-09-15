@@ -59,9 +59,3 @@
 
 @endsection
 
-                        {{-- <li class="p-3 rounded-lg border-2
-                            @if($ans->id == $detail['correct_answer'] ) border-green-500 bg-green-100
-                            @elseif($ans->id == $detail['given_answer'] && !$detail['is_correct']) border-red-500 bg-red-100
-                            @else border-gray-200
-                            @endif
-                        "> --}}

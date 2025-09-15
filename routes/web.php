@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,10 @@ Route::get("/quiz/{quiz}/start", [QuizController::class, "start_quiz"])->name("q
 Route::post("/quiz/{quiz}/check", [QuizController::class, "check_quiz"])->name("quiz.check");
 
 Route::get("/quiz/result/{result}", [QuizController::class, "show_result"])->name("quiz.result");
+
+Route::get("/library", [LibraryController::class, "show_library"])->name("library.show");
+
+Route::post("/library/add/{quiz}", [LibraryController::class, "add_library"])->name("library.add");
 
 Route::post("/login", [UserController::class, "login"])->name("login");
 
