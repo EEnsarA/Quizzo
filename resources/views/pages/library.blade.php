@@ -1,5 +1,5 @@
 @extends("layouts.app")
-
+@props(['quizzes'])
 @section("content")
 
     <div class="mt-2 p-4 w-full h-full ">
@@ -9,7 +9,7 @@
             </div>
             <div class="mt-18 grid 2xl:grid-cols-4 xl:grid-cols-3 lg:grid-cols-3 md:grid-cols-3 sm:grid-cols-2  gap-6">
                     @foreach ($quizzes as $quiz)
-                        <x-quiz_card :quiz="$quiz"/>
+                        <x-quiz_library_card :quiz="$quiz"/>
                     @endforeach
             </div>
         </div>  

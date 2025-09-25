@@ -27,7 +27,7 @@
             <p class="text-gray-500 text-sm">Net</p>
         </div>
         <div>
-            <p class="text-xl font-bold">{{ $result->time_spent }}s</p>
+            <p class="text-xl font-bold">{{floor($result->time_spent/60)}}min {{$result->time_spent % 60}}sec</p>
             <p class="text-gray-500 text-sm">Time</p>
         </div>
     </div>

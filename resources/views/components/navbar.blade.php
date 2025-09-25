@@ -34,7 +34,7 @@
     <div x-show="open" x-cloak   x-transition:enter.duration.500ms x-transition:leave.duration.400ms
      class="fixed inset-0  backdrop-blur-xs flex items-center justify-center">
          <div class=" min-h-96  bg-[#1A1B1C] p-8 rounded-lg shadow-xl max-w-md w-full relative ">
-            <p class="text-3xl mt-2 font-sans font-semibold mb-8">Quizzo</p>
+            <p class="text-3xl mt-2  font-semibold mb-8">Quizzo</p>
             <!-- Login Form -->
             <template x-if="mode === 'login'">
                 <div>          

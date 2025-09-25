@@ -60,12 +60,15 @@
                     Start Quiz
                 </button>
                 </a>
-                <a href="" class="ml-4">
-                    <button 
-                        class="w-20 mt-2 bg-[#417582] transition-all duration-300 transform font-semibold hover:scale-105 hover:bg-[#2c606d] text-white p-2 rounded cursor-pointer">
-                        Add <i class="fa-solid fa-plus"></i>
-                    </button>
-                </a>
+                 @if (Auth::check())
+                    <form action="{{ route('library.add', $quiz) }}" method="POST">
+                        @csrf
+                        <button type="submit"
+                            class="w-20 ml-4 mt-2 bg-[#417582] transition-all duration-300 transform font-semibold hover:scale-105 hover:bg-[#2c606d] text-white p-2 rounded cursor-pointer">
+                            Add <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </form>
+                @endif
             </div>
             <div>
                 <div class="flex items-center mb-2">

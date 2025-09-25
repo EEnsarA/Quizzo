@@ -41,7 +41,7 @@ class Quiz extends Model
 
     public function rankings($filters = [])
     {
-        $query = QuizResult::where("quiz_id", $this->id)->with("user");
+        $query = QuizResult::whereNotIn("time_spent", [0])->where("quiz_id", $this->id)->with("user");
 
         if (in_array("multiple_attempts", $filters)) {
             $query->orderByDesc("net")->orderBy("time_spent");
@@ -75,11 +75,15 @@ class Quiz extends Model
 
     public function solvers()
     {
-        return $this->belongsToMany(User::class, "quiz_user")
-            ->withPivot("is_completed", "score")
+        return $this->belongsToMany(User::class, "user_libraries")
+            ->withPivot("is_completed", "score", "time_spent", "id")
             ->withTimestamps();
     }
 
+    public function results()
+    {
+        return $this->hasMany(QuizResult::class)->whereNotIn("time_spent", [0]);
+    }
 
 
     protected $casts = [

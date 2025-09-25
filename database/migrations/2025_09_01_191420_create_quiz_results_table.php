@@ -25,6 +25,7 @@ return new class extends Migration
             $table->integer("attempt_number")->default(1);
             $table->timestamps();
             $table->timestamp('expires_at')->nullable();
+            $table->timestamp("started_at")->nullable();
         });
     }
 

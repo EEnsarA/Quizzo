@@ -66,7 +66,7 @@
                                     <span class="text-green-700">{{ $r->net }}</span><i class="fa-regular fa-circle-check text-green-700 ml-1"></i> 
                                 </div>
                                 <div class="ml-4">
-                                    <span class="text-gray-800">{{ $r->time_spent }}s</span><i class="fa-regular text-gray-800 fa-clock ml-1"></i>
+                                    <span class="text-gray-800">{{ floor($r->time_spent/60) }}m {{$r->time_spent % 60}}s</span><i class="fa-regular text-gray-800 fa-clock ml-1"></i>
                                 </div>
                             </div>
                         </div>

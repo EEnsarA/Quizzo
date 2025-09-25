@@ -17,11 +17,12 @@ class QuizResult extends Model
         "net",
         "time_spent",
         "attempt_number",
-
+        'started_at',
     ];
 
     protected $casts = [
         "details" => "array", // Laravel otomatik JSON encode/decode yapıyor
+        "started_at" => "datetime" // string olarak çekildiği için tekrar datetime dönüştürme
     ];
 
     public function quiz()

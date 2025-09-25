@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('quiz_user', function (Blueprint $table) {
+        Schema::create('user_libraries', function (Blueprint $table) {
             $table->id();
             $table->foreignId("quiz_id")->constrained()->onDelete("cascade");
             $table->foreignId("user_id")->constrained()->onDelete("cascade");
             $table->boolean("is_completed")->default(false);
+            $table->integer("time_spent")->nullable();
             $table->float("score")->nullable();
             $table->timestamps();
         });
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('quiz_users');
+        Schema::dropIfExists('user_libraries');
     }
 };

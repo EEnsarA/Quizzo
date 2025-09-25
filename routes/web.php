@@ -18,13 +18,15 @@ Route::get("/quiz/{quiz}", [QuizController::class, "show_quiz"])->name("quiz.sho
 
 Route::get("/quiz/{quiz}/start", [QuizController::class, "start_quiz"])->name("quiz.start");
 
-Route::post("/quiz/{quiz}/check", [QuizController::class, "check_quiz"])->name("quiz.check");
+Route::post("/quiz/{quiz}/check/{quiz_result}", [QuizController::class, "check_quiz"])->name("quiz.check");
 
 Route::get("/quiz/result/{result}", [QuizController::class, "show_result"])->name("quiz.result");
 
 Route::get("/library", [LibraryController::class, "show_library"])->name("library.show");
 
 Route::post("/library/add/{quiz}", [LibraryController::class, "add_library"])->name("library.add");
+
+Route::delete("/library/remove/{id}", [LibraryController::class, "remove_library"])->name("library.remove");
 
 Route::post("/login", [UserController::class, "login"])->name("login");
 

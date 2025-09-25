@@ -1,5 +1,5 @@
 @extends("layouts.app")
-
+@props(["quizzes"])
 @section('content')
 
     <div class="mt-2 p-4 w-full h-full ">

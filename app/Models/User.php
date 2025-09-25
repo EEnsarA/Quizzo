@@ -55,8 +55,8 @@ class User extends Authenticatable
 
     public function solvedQuizzes()
     {
-        return $this->belongsToMany(Quiz::class, "quiz_user")
-            ->withPivot("is_completed", "score")
+        return $this->belongsToMany(Quiz::class, "user_libraries")
+            ->withPivot("is_completed", "score", "time_spent", "id")
             ->withTimestamps();
     }
 }
