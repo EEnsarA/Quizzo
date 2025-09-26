@@ -27,6 +27,7 @@ class HomeController extends Controller
         } else {
             $quizzes = Quiz::with(["user", "results"])->latest()->get();
         }
+
         return view("pages.home", compact("quizzes"));
     }
 }

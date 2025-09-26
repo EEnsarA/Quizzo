@@ -15,7 +15,7 @@ Alpine.store("sidebar", {
 
 
 
-
+//? Quiz Player
 Alpine.data("quizPlayer", () => ({
     active: 0,
     answers: {}, // [questionId]: answerId   1(index)-8 , 
@@ -143,7 +143,30 @@ Alpine.data("quizPlayer", () => ({
 
 }));
 
+//? Quiz Create
+Alpine.data("quizCreate", (props = {}) => ({
 
+    negativeMarkingEnabled: false,
+    fileName: "",
+    fileUrl: "",
+    errors: props.errors || {},
+
+    hasError(field) {
+        // hata yoksa undefined dönüyoruz 
+        if (this.errors[field]) return true;
+
+        else return false;
+    },
+
+    getError(field) {
+
+        if (this.hasError(field)) return this.errors[field][0]
+
+        else return "";
+    }
+
+
+}))
 
 
 

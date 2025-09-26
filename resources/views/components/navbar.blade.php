@@ -3,15 +3,15 @@
 
 <div
     x-data="{
-        open: {{ $errors->any() ? 'true' : 'false' }} ,
+        open: {{ $errors->auth_form->any() ? 'true' : 'false' }} ,
         mode: '{{ old('form_type' , 'login') }}',
-        errors: {{json_encode($errors->getMessages() ?? [])}},
+        errors: {{json_encode($errors->auth_form->getMessages() ?? [])}},
     }" 
     class="w-full h-20 bg-[#1A1B1C] text-white flex items-center p-4 justify-between">
     <div>
         <a href="{{ route('home') }}">
 
-            <p class="text-2xl font-mono font-semibold cursor-pointer">Quizzo</p>
+            <p class="text-2xl font-major-mono font-extrabold tracking-widest cursor-pointer">Quizzo</p>
         </a>
     </div>  
     @if(Auth::check())
@@ -34,7 +34,7 @@
     <div x-show="open" x-cloak   x-transition:enter.duration.500ms x-transition:leave.duration.400ms
      class="fixed inset-0  backdrop-blur-xs flex items-center justify-center">
          <div class=" min-h-96  bg-[#1A1B1C] p-8 rounded-lg shadow-xl max-w-md w-full relative ">
-            <p class="text-3xl mt-2  font-semibold mb-8">Quizzo</p>
+            <p class="text-3xl mt-2 tracking-widest font-extrabold mb-8">Quizzo</p>
             <!-- Login Form -->
             <template x-if="mode === 'login'">
                 <div>          

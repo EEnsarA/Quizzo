@@ -14,6 +14,13 @@ class QuizController extends Controller
         return view("pages.create");
     }
 
+    public function create_questions(Quiz $quiz)
+    {
+
+
+        return view("pages.create_question", compact("quiz"));
+    }
+
     public function show_quiz(Quiz $quiz)
     {
         $filters = request()->input("filters", []);
@@ -146,5 +153,46 @@ class QuizController extends Controller
         $rankings =  $result->quiz->rankings($filters);
 
         return view('pages.quiz_result', compact("result", "rankings"));
+    }
+
+    public function add_quiz(Request $request)
+    {
+        $request->validate([
+            "title" => "required|string|max:255",
+            "img_url" => "nullable|image|mimes:jpg,jpeg,png|max:2048",
+            "subject" => "required|string|max:255",
+            "description" => "nullable|string|max:500",
+            "number_of_questions" => "required|integer|min:4|max:20",
+            "number_of_options" => "required|integer|min:2|max:6",
+            "difficulty" => "required|string|in:easy,medium,hard,expert",
+            "duration_minutes" => "required|integer|min:1|max:120",
+            "wrong_to_correct_ratio" => "nullable|integer|min:0|max:10",
+        ]);
+
+        #img için store işlemleri
+        $path = null;
+        if ($request->hasFile("img_url")) {
+            # benzersiz isim 
+            $filename = uniqid() . "-" . $request->file("img_url")->getClientOriginalName();
+            # storage/app/public/uploads/ kısmına img unique bir şekilde kaydetme 
+            $path = $request->file("img_url")->storeAs("uploads", $filename, "public");
+        }
+
+
+        $quiz = Quiz::create([
+            "title" => $request->title,
+            "subject" => $request->subject,
+            "description" => $request->description ?? null,
+            "img_url" => $path ?? null,
+            "number_of_questions" => $request->number_of_questions,
+            "number_of_options" => $request->number_of_options,
+            "difficulty" => $request->difficulty,
+            "duration_minutes" => $request->duration_minutes,
+            "wrong_to_correct_ratio" => $request->wrong_to_correct_ratio ?? 0,
+            "user_id" => Auth::id(),
+        ]);
+
+
+        return redirect()->route("quiz.add.questions", $quiz)->with('success', 'Yeni Quiz Oluşturuldu.');
     }
 }

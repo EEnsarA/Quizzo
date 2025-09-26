@@ -3,7 +3,7 @@
 
 <div class="w-full bg-[#BFBDB0] text-[#1A1B1C]  rounded-2xl shadow-sm shadow-[#BFBDB0]/60 p-4 flex flex-col justify-between transation-all duration-200 hover:scale-105">
     <div class="mt-4  flex flex-col">
-        <h2 class="text-3xl font-bold font-mono text-[#417582]">Success Ranking</h2>
+        <h2 class="text-2xl font-extrabold  text-[#2d626f]">Success Chart</h2>
 
         <!-- Question list container with scroll and buttons -->
         <ul class="space-y-2 mt-4">

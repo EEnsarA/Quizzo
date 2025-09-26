@@ -14,6 +14,10 @@ Route::get("/", [HomeController::class, "index"])->name("home");
 
 Route::get("/create_quiz", [QuizController::class, "create_quiz"])->name("quiz.create");
 
+Route::post("/create_quiz/add", [QuizController::class, "add_quiz"])->name("quiz.add");
+
+Route::get("/create_questions/{quiz}", [QuizController::class, "create_questions"])->name("quiz.add.questions");
+
 Route::get("/quiz/{quiz}", [QuizController::class, "show_quiz"])->name("quiz.show");
 
 Route::get("/quiz/{quiz}/start", [QuizController::class, "start_quiz"])->name("quiz.start");
