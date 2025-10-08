@@ -13,16 +13,24 @@ class LibraryController extends Controller
 {
     public function show_library()
     {
-        if (!Auth::check())  return redirect()->route("login");
+        if (!Auth::check())  return redirect()->route("home");
 
         $userId = Auth::id();
         $user = Auth::user();
 
+        $all_library = $user->libraryQuizzes;
 
-        $quizzes = $user->solvedQuizzes;
+        $myQuizzos = $all_library->filter(function ($quiz) use ($userId) {
+            // Quiz'i oluşturan (quizzes.user_id) ile mevcut kullanıcıyı (Auth::id()) karşılaştır.
+            return $quiz->user_id === $userId;
+        });
 
+        $libraryQuizzos = $all_library->filter(function ($quiz) use ($userId) {
+            // Quiz'i oluşturan (quizzes.user_id) ile mevcut kullanıcıyı karşılaştır ve EŞİT DEĞİLSE al.
+            return $quiz->user_id !== $userId;
+        });
 
-        return view("pages.library", compact("quizzes"));
+        return view("pages.library", compact("myQuizzos", "libraryQuizzos"));
     }
 
     public function add_library(Quiz $quiz)

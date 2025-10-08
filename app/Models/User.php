@@ -53,7 +53,7 @@ class User extends Authenticatable
         return $this->hasMany(Quiz::class);
     }
 
-    public function solvedQuizzes()
+    public function libraryQuizzes()
     {
         return $this->belongsToMany(Quiz::class, "user_libraries")
             ->withPivot("is_completed", "score", "time_spent", "id")

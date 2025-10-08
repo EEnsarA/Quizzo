@@ -3,6 +3,10 @@
 
  @props(['quiz','rankings','current_user_id'])
  @section("content")
+ @php
+    $img = 'storage/' . $quiz->img_url
+ 
+ @endphp
  @use("App\Enums\Difficulty")
 
     @switch($quiz->difficulty)
@@ -27,12 +31,20 @@
     
 
     <div class=" w-full md:col-span-2 bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm  shadow-[#BFBDB0]/60 overflow-hidden h-200 flex flex-col  hover:shadow-md  cursor-pointer">
-        <!-- Quiz image -->
-        <img class="w-full h-64 object-cover" src="{{ $quiz->img_url ?? 'https://picsum.photos/400/200' }}" alt="Quiz Image">
+      
+        <img class="w-full h-64 object-cover" 
+        @if($quiz->img_url)
+            src="{{ asset($img)}}"
+            alt="{{ $quiz->title }}"
+        @else 
+            src="{{ 'https://picsum.photos/400/200' }}"
+            alt="Quiz Image"
+        @endif
+        >
 
-        <!-- İçerik -->
+  
         <div class="p-4 flex-1 flex flex-col justify-between">
-            <!-- Üst kısım -->
+  
             <div class="mt-4">   
                 <h3 class="text-3xl font-bold">{{ $quiz->title }}</h3>
                 <p class="text-2xl font-semibold text-gray-700 mt-2">{{ $quiz->subject }}</p>
@@ -72,7 +84,6 @@
             </div>
             <div>
                 <div class="flex items-center mb-2">
-                    <!-- Avatar -->
                     <img src="https://i.pravatar.cc/100" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
                     <span class="font-semibold text-sm">Created by {{ $quiz->user->name }}</span>
                 </div>  

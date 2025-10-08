@@ -155,10 +155,12 @@
         <div class="mt-2 flex  justify-between space-x-4">
 
             <button type="submit" 
-                class="flex-1 py-3 rounded-lg text-white font-bold   tracking-wider transition-all duration-300 transform bg-[#41825e] hover:bg-[#357652] hover:scale-103 shadow-lg cursor-pointer">
+                class="flex-1 py-3 rounded-lg text-white font-bold   tracking-wider transition-all duration-300 transform bg-[#41825e] hover:bg-[#357652] hover:scale-102 shadow-lg cursor-pointer">
                 Create Quiz 
             </button>
             <button type="submit" 
+                    formaction="{{ route('quiz.ai_generate') }}"
+                    formmethod="POST"
                     class="w-52  border-2 py-3 rounded-lg  font-bold transition-all duration-300 transform border-[#417582] text-[#417582]  hover:bg-[#2c606d] hover:text-white hover:scale-105 shadow-lg cursor-pointer">
                 Generate Quiz With AI <i class="fa-solid fa-gears"></i>
             </button>

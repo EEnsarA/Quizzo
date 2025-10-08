@@ -1,6 +1,6 @@
 @props(['result'])
 
-<div class="bg-white rounded-xl shadow p-6 mb-8 flex items-center justify-between">
+<div class="bg-[#BFBDB0] text-[#1A1B1C] rounded-xl shadow p-6 mb-8 flex items-center justify-between">
     <div class="flex items-center space-x-4">
         <img src="{{ $result->user?->avatar_url ?? 'https://i.pravatar.cc/100' }}" 
              class="w-12 h-12 rounded-full">

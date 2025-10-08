@@ -28,6 +28,8 @@ class HomeController extends Controller
             $quizzes = Quiz::with(["user", "results"])->latest()->get();
         }
 
+
+
         return view("pages.home", compact("quizzes"));
     }
 }

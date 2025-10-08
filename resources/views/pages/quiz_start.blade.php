@@ -3,7 +3,7 @@
  @section("content")
  @use("App\Enums\Difficulty")
 
-     
+    
 
 <div x-data="quizPlayer()" x-cloak x-init="init()" data-duration-minutes="{{ $quiz->duration_minutes }}" data-is-new="{{ $is_new_attempt ? 'true' : 'false' }}"
      data-start-time="{{ $quiz_result->started_at->getTimestamp() }}"  class="w-full grid grid-cols-1 md:grid-cols-3 gap-12 p-8">
@@ -11,33 +11,28 @@
     <div class="w-full md:col-span-2 bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm  shadow-[#BFBDB0]/60 overflow-hidden h-full flex flex-col  hover:shadow-md p-4">
         @foreach ($quiz->questions as $index => $question)
             <template x-if="active == {{$index}}"> 
-                <div class="w-full bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm shadow-[#BFBDB0]/60 overflow-hidden p-8 mb-4">
+                <div class="w-full flex flex-col justify-around bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm h-full shadow-[#BFBDB0]/60 overflow-hidden p-8 mb-4">
                     <div class="mb-4 flex flex-row justify-between">
 
                         @if ($question->question_title)
                             <div class="text-xl font-bold text-gray-700">Q{{ $index + 1 }}. {{ $question->question_title }}</div>
                         @else
-                             <div class="text-xl font-bold text-gray-700">Q{{ $index + 1 }}. Question Title</div>    
+                             <div class="text-xl font-bold text-gray-700">Q{{ $index + 1 }}</div>    
                         @endif
 
                         <div class="">
                                 <div class="text-xl font-mono font-bold " x-text="countdownText"></div>
                         </div>
                     </div>
-                    @if ($question->question_image)
-                        <div class="mb-6 rounded-lg overflow-hidden">
-                            <img src="{{ asset('storage/' . $question->question_image) }}" alt="Question image" class="w-full h-auto object-cover">
-                        </div>
-                    @else 
-                        <div class="mb-6 rounded-lg overflow-hidden">
-                            <img src="{{ 'https://picsum.photos/400/200' }}" alt="Question image" class="w-full h-auto object-cover">
+                    @if ($question->img_url)
+                        <div class="mb-6 rounded-lg">
+                            <img src="{{ asset('storage/' . $question->img_url) }}" alt="Question image" class="w-full h-64  object-cover">
                         </div>
                     @endif
-                    <h2 class="text-3xl font-semibold mb-6">
-
+                    <h2 class="text-3xl leading-12 font-semibold pb-6 pt-6">
                         <span class="block mt-2"> {{ $question->question_text }}</span>
                     </h2>
-                    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                         @foreach ($question->answers as $ansIndex => $answer)
                             <li>
                             <button 
@@ -47,7 +42,7 @@
                                 ?'bg-[#41825e] text-white border-[#41825e]'
                                 :'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200 hover:border-gray-400'"
                                 >
-                                <span class="font-bold">{{ chr(65 + $ansIndex) }})</span> {{ $answer->answer_text }}
+                                <span class="font-bold">{{ chr(65 + $ansIndex) }}) </span> {{ $answer->answer_text }}
                             </button>
                             </li>
                         @endforeach

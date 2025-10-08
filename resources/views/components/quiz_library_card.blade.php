@@ -1,18 +1,25 @@
 
-@props(['quiz'])
+@props(['quiz','myQuiz' => false])
 @use("App\Enums\Difficulty")
 <?php
 
     $difficulty = $quiz->difficulty;
-    
+    $img = 'storage/' . $quiz->img_url
 ?>
 
 
 <div class="max-w-xs bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm  shadow-[#BFBDB0]/60 overflow-hidden h-130 flex flex-col hover:scale-105 hover:shadow-md transation-all duration-200 ">
-        <img class="w-full h-32 object-cover" src="{{ $quiz->img_url ?? 'https://picsum.photos/400/200' }}" alt="Quiz Image">
-
+        <img class="w-full h-32 object-cover" 
+        @if($quiz->img_url)
+            src="{{ asset($img)}}"
+            alt="{{ $quiz->title }}"
+        @else 
+            src="{{ 'https://picsum.photos/400/200' }}"
+            alt="Quiz Image"
+        @endif
+        >
         <div class="p-4 flex-1 flex flex-col justify-between">
-        
+            
             <div>
                 <div class="flex items-center mb-2">
                     <img src="https://i.pravatar.cc/100" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
@@ -40,7 +47,7 @@
                             </div>
                             <div class="flex flex-row items-center text-md font-semibold">
                                 <p class= "text-green-700">{{ $quiz->pivot->score }}</p><i class="fa-regular fa-circle-check text-green-700 ml-1 mr-2"></i>
-                                <p class="text-gray-800">{{ $quiz->pivot->time_spent }}</p><i class="fa-regular text-gray-800 fa-clock ml-1"></i> 
+                                <p class="text-gray-800">{{ $quiz->pivot->time_spent }}m</p><i class="fa-regular text-gray-800 fa-clock ml-1"></i> 
                             </div>
                         </div>
 
@@ -54,24 +61,27 @@
             
             <div class="flex justify-between items-center mt-3">
                 
-                @switch($quiz->difficulty)
-                @case(Difficulty::Easy)
-                <span class="bg-blue-400 text-white text-xs font-semibold px-3 py-1 rounded-full">{{ $quiz->difficulty }}</span>
-                @break
-                @case(Difficulty::Medium)    
-                <span class="bg-indigo-800 text-white text-xs font-semibold px-3 py-1 rounded-full">{{ $quiz->difficulty }}</span>
-                @break
-                @case(Difficulty::Hard)
-                <span class="bg-rose-700 text-white text-xs px-3 font-semibold py-1 rounded-full">{{ $quiz->difficulty }}</span>
-                @break
-                @case(Difficulty::Expert)
-                <span class="bg-[#d1a806] text-white text-xs px-3 font-semibold py-1 rounded-full">{{ $quiz->difficulty }}</span>
-                @break 
-                @default    
-                <span class="bg-emerald-600 text-white text-xs px-3 font-semibold py-1 rounded-full">new</span>
-                @endswitch          
-                
-                <span class="text-xs font-semibold text-gray-800">{{ $quiz->results->count()}} times solved</span>
+                @if( $quiz->results->count() <= 0)
+                    <span class="bg-[#b5b690] text-white text-xs px-3 font-semibold py-2 rounded-full">new</span> 
+                @else
+                    @switch($quiz->difficulty)
+                    @case(Difficulty::Easy)
+                    <span class="bg-blue-400 text-white text-xs font-semibold px-3 py-2 rounded-full">{{ $quiz->difficulty }}</span>
+                    @break
+                    @case(Difficulty::Medium)    
+                    <span class="bg-indigo-800 text-white text-xs font-semibold px-3 py-2 rounded-full">{{ $quiz->difficulty }}</span>
+                    @break
+                    @case(Difficulty::Hard)
+                    <span class="bg-rose-700 text-white text-xs px-3 font-semibold py-2 rounded-full">{{ $quiz->difficulty }}</span>
+                    @break
+                    @case(Difficulty::Expert)
+                    <span class="bg-[#d1a806] text-white text-xs px-3 font-semibold py-2 rounded-full">{{ $quiz->difficulty }}</span>
+                    @break 
+                    @default    
+                    <span class="bg-[#b5b690] text-white text-xs px-3 font-semibold py-2 rounded-full">new</span>
+                    @endswitch  
+                    <span class="text-xs font-semibold text-gray-800">{{ $quiz->results->count()}} times solved</span>
+                @endif            
             </div>
     
             <div>          
@@ -82,16 +92,25 @@
                                 class="flex-1 text-center bg-[#417582] font-semibold hover:bg-[#2c606d] text-white p-2 rounded cursor-pointer">
                                 Try Again
                             </a>
-                        
-                            <form action="{{ route('library.remove', $quiz->pivot->id) }}" method="POST">
-                                @csrf
-                                @method("DELETE")
-                                <button  type="submit"
-                                    class="W-14 border-2 border-rose-800 text-rose-800 duration-300  font-semibold  hover:bg-rose-800 hover:text-white p-2 rounded cursor-pointer">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                           </form>
-                        
+                            @if($myQuiz == True)
+                                <form action="{{ route('quiz.delete', $quiz) }}" method="POST">
+                                    @csrf
+                                    @method("DELETE")
+                                    <button  type="submit"
+                                        class="W-14 border-2 border-rose-800 text-rose-800 duration-300  font-semibold  hover:bg-rose-800 hover:text-white p-2 rounded cursor-pointer">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            @else
+                                <form action="{{ route('library.remove', $quiz->pivot->id) }}" method="POST">
+                                    @csrf
+                                    @method("DELETE")
+                                    <button  type="submit"
+                                        class="W-14 border-2 border-rose-800 text-rose-800 duration-300  font-semibold  hover:bg-rose-800 hover:text-white p-2 rounded cursor-pointer">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                            </form>
+                            @endif
                         </div>
                     @else
                         <div class="mt-4 flex justify-between space-x-2">
@@ -99,15 +118,25 @@
                                 class="flex-1 text-center bg-[#41825e]  font-semibold  hover:bg-[#357652] text-white p-2 rounded cursor-pointer">
                                 Start Quiz
                             </a>
-                           <form action="{{ route('library.remove', $quiz->pivot->id) }}" method="POST">
-                                @csrf
-                                @method("DELETE")
-                                <button  type="submit"
-                                    class="W-14 border-2 border-rose-800 text-rose-800 duration-300  font-semibold  hover:bg-rose-800 hover:text-white p-2 rounded cursor-pointer">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                           </form>
-                            
+                            @if($myQuiz == True)
+                                <form action="{{ route('quiz.delete', $quiz) }}" method="POST">
+                                    @csrf
+                                    @method("DELETE")
+                                    <button  type="submit"
+                                        class="W-14 border-2 border-rose-800 text-rose-800 duration-300  font-semibold  hover:bg-rose-800 hover:text-white p-2 rounded cursor-pointer">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            @else
+                                <form action="{{ route('library.remove', $quiz->pivot->id) }}" method="POST">
+                                    @csrf
+                                    @method("DELETE")
+                                    <button  type="submit"
+                                        class="W-14 border-2 border-rose-800 text-rose-800 duration-300  font-semibold  hover:bg-rose-800 hover:text-white p-2 rounded cursor-pointer">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </form>
+                            @endif  
                         </div>
                     @endif
                         

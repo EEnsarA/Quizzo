@@ -4,11 +4,23 @@
 <?php
 
     $difficulty = $quiz->difficulty;
-    
+    $img = 'storage/' . $quiz->img_url
 ?>
 
 <div class="max-w-xs bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm  shadow-[#BFBDB0]/60 overflow-hidden h-120 flex flex-col hover:scale-105 hover:shadow-md transation-all duration-200 ">
-        <img class="w-full h-32 object-cover" src="{{ $quiz->img_url ?? 'https://picsum.photos/400/200' }}" alt="Quiz Image">
+    <div>
+        <img class="w-full h-42 object-cover"
+
+        @if($quiz->img_url)
+            src="{{ asset($img)}}"
+            alt="{{ $quiz->title }}"
+        @else 
+            src="{{ 'https://picsum.photos/400/200' }}"
+            alt="Quiz Image"
+        @endif
+        >
+    </div>
+
 
         <div class="p-4 flex-1 flex flex-col justify-between">
         
@@ -28,25 +40,29 @@
 
             
             <div class="flex justify-between items-center mt-3">
+                @if( $quiz->results->count() <= 0)
+                    <span class="bg-[#b5b690] text-white text-xs px-3 font-semibold py-2 rounded-full">new</span>
+                    
+                @else
+                    @switch($quiz->difficulty)
+                    @case(Difficulty::Easy)
+                    <span class="bg-blue-400 text-white text-xs font-semibold px-3 py-2 rounded-full">{{ $quiz->difficulty }}</span>
+                    @break
+                    @case(Difficulty::Medium)    
+                    <span class="bg-indigo-800 text-white text-xs font-semibold px-3 py-2 rounded-full">{{ $quiz->difficulty }}</span>
+                    @break
+                    @case(Difficulty::Hard)
+                    <span class="bg-rose-700 text-white text-xs px-3 font-semibold py-2 rounded-full">{{ $quiz->difficulty }}</span>
+                    @break
+                    @case(Difficulty::Expert)
+                    <span class="bg-[#d1a806] text-white text-xs px-3 font-semibold py-2 rounded-full">{{ $quiz->difficulty }}</span>
+                    @break 
+                    @default    
+                    <span class="bg-[#b5b690] text-white text-xs px-3 font-semibold py-2 rounded-full">new</span>
+                    @endswitch  
+                    <span class="text-xs font-semibold text-gray-800">{{ $quiz->results->count()}} times solved</span>
+                @endif        
                 
-                @switch($quiz->difficulty)
-                @case(Difficulty::Easy)
-                <span class="bg-blue-400 text-white text-xs font-semibold px-3 py-1 rounded-full">{{ $quiz->difficulty }}</span>
-                @break
-                @case(Difficulty::Medium)    
-                <span class="bg-indigo-800 text-white text-xs font-semibold px-3 py-1 rounded-full">{{ $quiz->difficulty }}</span>
-                @break
-                @case(Difficulty::Hard)
-                <span class="bg-rose-700 text-white text-xs px-3 font-semibold py-1 rounded-full">{{ $quiz->difficulty }}</span>
-                @break
-                @case(Difficulty::Expert)
-                <span class="bg-[#d1a806] text-white text-xs px-3 font-semibold py-1 rounded-full">{{ $quiz->difficulty }}</span>
-                @break 
-                @default    
-                <span class="bg-emerald-600 text-white text-xs px-3 font-semibold py-1 rounded-full">new</span>
-                @endswitch          
-                
-                <span class="text-xs font-semibold text-gray-800">{{ $quiz->results->count()}} times solved</span>
             </div>
     
             <div class="mt-2 flex justify-between space-x-2">

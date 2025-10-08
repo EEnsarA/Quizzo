@@ -1,6 +1,4 @@
 
-
-
 <div
     x-data="{
         open: {{ $errors->auth_form->any() ? 'true' : 'false' }} ,
