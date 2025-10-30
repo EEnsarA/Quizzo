@@ -7,7 +7,7 @@
     $img = 'storage/' . $quiz->img_url
 ?>
 
-<div class="max-w-xs bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm  shadow-[#BFBDB0]/60 overflow-hidden h-120 flex flex-col hover:scale-105 hover:shadow-md transation-all duration-200 ">
+<div class="max-w-xs bg-gray-200 text-[#1A1B1C] rounded-2xl shadow-sm  shadow-gray-400/60 overflow-hidden h-120 flex flex-col hover:scale-105 hover:shadow-md transation-all duration-200 ">
     <div>
         <img class="w-full h-42 object-cover"
 

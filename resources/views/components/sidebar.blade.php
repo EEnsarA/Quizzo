@@ -32,7 +32,7 @@
             @endif
             <li>
                 <a href="{{ route('quiz.create') }}" class="block py-2 px-4 hover:bg-gray-700 rounded transition-all">
-                    <i class="fa-solid fa-plus mr-2"></i> <span x-show="$store.sidebar.open" x-transition>Create</span>
+                    <i class="fa-solid fa-plus mr-2"></i> <span x-show="$store.sidebar.open" x-transition>Create Quiz</span>
                 </a>
             </li>
             <li>

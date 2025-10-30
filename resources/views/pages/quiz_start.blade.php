@@ -8,10 +8,10 @@
 <div x-data="quizPlayer()" x-cloak x-init="init()" data-duration-minutes="{{ $quiz->duration_minutes }}" data-is-new="{{ $is_new_attempt ? 'true' : 'false' }}"
      data-start-time="{{ $quiz_result->started_at->getTimestamp() }}"  class="w-full grid grid-cols-1 md:grid-cols-3 gap-12 p-8">
 
-    <div class="w-full md:col-span-2 bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm  shadow-[#BFBDB0]/60 overflow-hidden h-full flex flex-col  hover:shadow-md p-4">
+    <div class="w-full md:col-span-2 bg-gray-200 text-[#1A1B1C] rounded-2xl shadow-sm  shadow-gray-400/60 overflow-hidden h-full flex flex-col  hover:shadow-md p-4">
         @foreach ($quiz->questions as $index => $question)
             <template x-if="active == {{$index}}"> 
-                <div class="w-full flex flex-col justify-around bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm h-full shadow-[#BFBDB0]/60 overflow-hidden p-8 mb-4">
+                <div class="w-full flex flex-col justify-around bg-gray-200 text-[#1A1B1C] rounded-2xl shadow-sm h-full shadow-gray-400/60 overflow-hidden p-8 mb-4">
                     <div class="mb-4 flex flex-row justify-between">
 
                         @if ($question->question_title)

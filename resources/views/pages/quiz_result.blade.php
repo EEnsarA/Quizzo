@@ -20,7 +20,7 @@
                 $img = 'storage/' . $question->img_url
             @endphp
 
-            <div class="bg-[#BFBDB0] text-[#1A1B1C] rounded-xl shadow p-6 mb-6">
+            <div class="bg-gray-300 text-[#1A1B1C] rounded-xl shadow p-6 mb-6">
                 <h3 class="font-bold mb-4">
                     Q{{ $index+1 }}
                 </h3>

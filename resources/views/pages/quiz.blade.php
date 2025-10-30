@@ -30,7 +30,7 @@
 <div class="w-full grid grid-cols-1 md:grid-cols-3 gap-12 p-8">
     
 
-    <div class=" w-full md:col-span-2 bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm  shadow-[#BFBDB0]/60 overflow-hidden h-200 flex flex-col  hover:shadow-md  cursor-pointer">
+    <div class=" w-full md:col-span-2 bg-gray-300 text-[#1A1B1C] rounded-2xl shadow-sm  shadow-gray-400/60 overflow-hidden h-200 flex flex-col  hover:shadow-md  cursor-pointer">
       
         <img class="w-full h-64 object-cover" 
         @if($quiz->img_url)

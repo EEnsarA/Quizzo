@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ExamController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\QuizController;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 Route::get("/", [HomeController::class, "index"])->name("home");
 
 Route::get("/create_quiz", [QuizController::class, "create_quiz"])->name("quiz.create");
+
+Route::get("/exam_create", [ExamController::class, "index"])->name("exam.create");
 
 Route::post("/create_quiz/add", [QuizController::class, "add_quiz"])->name("quiz.add");
 

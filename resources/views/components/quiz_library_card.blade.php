@@ -8,7 +8,7 @@
 ?>
 
 
-<div class="max-w-xs bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm  shadow-[#BFBDB0]/60 overflow-hidden h-130 flex flex-col hover:scale-105 hover:shadow-md transation-all duration-200 ">
+<div class="max-w-xs bg-gray-200 text-[#1A1B1C] rounded-2xl shadow-sm  shadow-gray-400/60 overflow-hidden h-130 flex flex-col hover:scale-105 hover:shadow-md transation-all duration-200 ">
         <img class="w-full h-32 object-cover" 
         @if($quiz->img_url)
             src="{{ asset($img)}}"

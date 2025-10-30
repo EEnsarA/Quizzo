@@ -1,6 +1,6 @@
 @props(['quiz','quiz_result'])
 
-<div class="w-full h-180 bg-[#BFBDB0] text-[#1A1B1C] rounded-2xl shadow-sm shadow-[#BFBDB0]/60 p-4 flex flex-col justify-between transation-all duration-200 hover:scale-105">
+<div class="w-full h-180 bg-gray-200 text-[#1A1B1C] rounded-2xl shadow-sm shadow-gray-400/60 p-4 flex flex-col justify-between transation-all duration-200 hover:scale-105">
         <div class="mt-4 flex-1 flex flex-col">
                 <h2 class="text-xl font-bold font-mono text-gray-800 mb-4">Questions</h2>   
                     <div class="flex flex-col items-center mt-2 ">
