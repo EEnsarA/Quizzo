@@ -12,29 +12,29 @@
     <aside class="flex-none w-[250px] bg-white border-r border-gray-200 p-5 shadow-lg z-10 flex flex-col overflow-y-auto">
         
         <div>
-            <h3 class="text-xl font-semibold text-gray-800 border-b-2 border-blue-500 pb-2 mt-0">
+            <h3 class="text-xl font-semibold text-gray-800 border-b-2 border-[#0B2B8C] pb-2 mt-0">
                 Bileşenler
             </h3>
             
             <ul class="list-none p-0 mt-4 space-y-2">
                 
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-blue-500 hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
+                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-[#0B2B8C] hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
                     <i class="fa-solid fa-heading w-5 h-5 mr-2 text-center"></i>
                     Sınav Başlığı
                 </li>
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-blue-500 hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
+                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-[#0B2B8C] hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
                     <i class="fa-solid fa-image w-5 h-5 mr-2 text-center"></i>
                     Okul Logosu
                 </li>
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-blue-500 hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
+                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-[#0B2B8C] hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
                     <i class="fa-solid fa-user-graduate w-5 h-5 mr-2 text-center"></i>
                     Öğrenci Bilgi Alanı
                 </li>
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-blue-500 hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
+                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-[#0B2B8C] hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
                     <i class="fa-solid fa-list-check w-5 h-5 mr-2 text-center"></i>
                     Çoktan Seçmeli Soru
                 </li>
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-blue-500 hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
+                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-[#0B2B8C] hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
                     <i class="fa-solid fa-align-left w-5 h-5 mr-2 text-center"></i>
                     Açık Uçlu Soru
                 </li>
@@ -42,7 +42,7 @@
         </div>
     
         <div class="mt-6 pt-6 border-t border-gray-200">
-            <h3 class="text-xl font-semibold text-gray-800 border-b-2 border-blue-500 pb-2 mt-0">
+            <h3 class="text-xl font-semibold text-gray-800 border-b-2 border-[#0B2B8C] pb-2 mt-0">
                 Soru Kaynağı Oluştur
             </h3>
 
@@ -59,7 +59,7 @@
                     </label>
                 </div>
            
-                <button class="w-full flex items-center justify-center p-3 font-semibold text-white bg-blue-600 rounded-md transition hover:bg-blue-700 active:bg-blue-800">
+                <button class="w-full flex items-center justify-center p-3 font-semibold text-white bg-[#0B2B8C] rounded-md transition hover:bg-blue-800 active:bg-blue-800 cursor-pointer">
                     <i class="fa-solid fa-wand-magic-sparkles w-5 h-5 mr-2 text-center"></i>
                     AI ile Soru Oluştur
                 </button>
@@ -91,10 +91,10 @@
         <header class="flex justify-between items-center py-4 px-6 bg-white border-b border-gray-200 shadow-sm">
             <input type="text" value="Yeni Sınav Kağıdı" class="text-2xl font-semibold text-gray-800 border-none rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Sınav Başlığı Girin...">
             <div class="space-x-3">
-                <button class="px-5 py-2.5 font-semibold text-white bg-gray-500 rounded-md transition hover:bg-gray-600">
+                <button class="font-medium rounded-lg text-sm px-6 py-2.5 text-white bg-gray-500 transition hover:bg-gray-600 cursor-pointer">
                     Kaydet
                 </button>
-                <button class="px-5 py-2.5 font-semibold text-white bg-blue-500 rounded-md transition hover:bg-blue-600">
+                <button type="button" class="text-white bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800  font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 cursor-pointer">
                     PDF İndir
                 </button>
             </div>

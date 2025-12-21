@@ -48,3 +48,7 @@ Route::post("/register", [UserController::class, "register"])->name("register");
 Route::post("/logout", [UserController::class, "logout"])->name("logout");
 
 Route::get("/dashboard", [UserController::class, "dashboard"])->middleware("auth")->name("dashboard");
+
+Route::get("/profile", [UserController::class, "profile"])->name("profile");
+
+Route::post("/profile/update-avatar", [UserController::class, "updateAvatar"])->name("profile.avatar");

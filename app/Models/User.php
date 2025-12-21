@@ -23,6 +23,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'avatar_url',
     ];
 
     /**
@@ -58,5 +59,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Quiz::class, "user_libraries")
             ->withPivot("is_completed", "score", "time_spent", "id")
             ->withTimestamps();
+    }
+
+    public function results()
+    {
+
+        return $this->hasMany(QuizResult::class)->whereNotIn("time_spent", [0]);
     }
 }

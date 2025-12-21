@@ -169,7 +169,7 @@ Alpine.data("quizCreate", (props = {}) => ({
 }))
 
 
-
+//? Question Create
 Alpine.data("questionCreate", (props = {}) => ({
     total_questions: props.number_of_questions ?? 0,
     total_options: props.number_of_options ?? 2,
@@ -294,6 +294,41 @@ Alpine.data("questionCreate", (props = {}) => ({
 
 }))
 
+Alpine.data("profileAvatar", (props = {}) => ({
+
+    previewUrl: props.initialUrl || '',
+    token: props.csrf_token || '',
+    isUploading: false,
+
+    async updateAvatar(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        this.previewUrl = URL.createObjectURL(file);
+        this.isUploading = true;
+
+        const formData = new FormData();
+        formData.append('avatar_img', file);
+
+        try {
+            const response = await axios.post('/profile/update-avatar', formData, {
+                headers: {
+                    'X-CSRF-TOKEN': this.token
+                },
+            });
+
+            console.log('Avatar güncellendi:', response.data);
+
+        } catch (error) {
+            console.error(error);
+            alert('Resim yüklenirken bir sorun oluştu.');
+            this.previewUrl = "";
+        } finally {
+            this.isUploading = false;
+        }
+
+    }
+
+}))
 
 
 Alpine.start();

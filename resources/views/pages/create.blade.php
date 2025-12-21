@@ -4,6 +4,7 @@
 @section("content")
 
 
+
 <div class="max-w-3xl mx-auto mt-10 p-6 text-[#F2EDE4]  shadow-md rounded-lg"
  x-data="quizCreate({ errors: {{ Js::from($errors->getMessages()) }} })">
 
@@ -81,7 +82,7 @@
                         </p>
             </div>
         </div>     
-       
+
         <div class="grid grid-cols-2 gap-6">
             <div>
                 <label for="number_of_questions" class="block  font-bold tracking-wider mb-2">Soru Sayısı</label>

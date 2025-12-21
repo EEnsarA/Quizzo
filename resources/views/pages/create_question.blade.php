@@ -86,9 +86,7 @@
                                     @change="setFile($event)"
                                 />
                             </label>
-                            {{-- <template x-if="hasError('img_url')">
-                                <p class="text-red-500 text-sm mt-2" x-text="getError('img_url')"></p>
-                            </template>   --}}
+           
                         </div>
                     </div>
                     <div x-show="questions[current_q_index].fileName">
@@ -150,7 +148,7 @@
 
                     </div>
 
-                            <!-- Navigation Buttons -->
+                         
                     <div class="flex justify-between mt-6">
                         <button type="button" 
                                 @click="prevQuestion" 

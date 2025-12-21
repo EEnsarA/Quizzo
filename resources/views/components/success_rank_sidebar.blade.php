@@ -1,79 +1,120 @@
-
 @props(['quiz', 'rankings', 'current_user_id'])
 
-<div class="w-full bg-gray-200 text-[#1A1B1C]  rounded-2xl shadow-sm shadow-gray-400/60 p-4 flex flex-col justify-between transation-all duration-200 hover:scale-105">
-    <div class="mt-4  flex flex-col">
-        <h2 class="text-2xl font-extrabold  text-[#2d626f]">Success Chart</h2>
-
-        <!-- Question list container with scroll and buttons -->
-        <ul class="space-y-2 mt-4">
-                @if($rankings->isEmpty())
-                    <h2 class="mt-4 font-semibold text-md">Henüz çözüm yok.</h2>
-                @else
-                <div class="flex space-x-4 mb-4 mt-2">
-                    <form method="GET" action="{{ route('quiz.show', $quiz->slug) }}" class="space-x-4 mb-4" id="filtersForm">
-                        <label>
-                            <input type="checkbox" name="filters[]" value="multiple_attempts"
-                                {{ in_array('multiple_attempts', request()->filters ?? []) ? 'checked' : '' }}
-                                onchange="document.getElementById('filtersForm').submit()">
-                            Multiple Attempts
-                        </label>
-
-                        <label>
-                            <input type="checkbox" name="filters[]" value="best_time"
-                                {{ in_array('best_time', request()->filters ?? []) ? 'checked' : '' }}
-                                onchange="document.getElementById('filtersForm').submit()">
-                            Best Time
-                        </label>
-                    </form>
-                </div>    
-                @endif
-                <div class="w-full h-90 overflow-y-auto space-y-4 pr-2">
-                    @foreach($rankings as $i => $r)
-                    <li class="flex items-center  bg-gray-100 p-3 rounded-lg hover:bg-gray-400 cursor-pointer
-                    @if($r->user_id == $current_user_id || $r->session_id == $current_user_id) border-2 border-emerald-700 @endif
-
-                    ">
-                        <div class="flex row text-lg items-center">
-                            @if($i == 0)
-                                <span class="font-bold text-lg ">#{{ $i + 1 }}</span>
-                                <i class="fa-solid fa-trophy text-[#FFD700] ml-2"></i>
-                            @elseif($i == 1)
-                                <span class="font-bold text-lg ">#{{ $i + 1 }}</span>
-                                <i class="fa-solid fa-award text-[#C0C0C0] ml-2"></i>
-                            @elseif($i == 2)
-                                <span class="font-bold text-lg ">#{{ $i + 1 }}</span>
-                                <i class="fa-solid fa-medal text-[#cd7f32] ml-2"></i>
-                            @else
-                                <span class="font-bold text-lg ">#{{ $i + 1 }}</span>
-                            @endif
-
-                        </div>
-                        <div class="ml-2 w-full flex justify-between items-center">
-                            <div class="flex items-center space-x-2">
-                                @if(!$r->user && $r->session_id)
-                                    <i class="fa-solid fa-circle-user text-[28px]"></i>    
-                                    <span class="font-semibold">{{'Guest' . substr($r->session_id, 0, 4) }}</span>
-                                @else
-                                    <img src="{{$r->user?->avatar_url  ?? 'https://i.pravatar.cc/100' }}" 
-                                        alt="avatar" 
-                                        class="w-8 h-8 rounded-full">
-                                    <span class="font-semibold">{{ $r->user?->name ?? 'Guest' . substr($r->session_id, 0, 4) }}</span>
-                                @endif
-                            </div>
-                            <div class="flex row text-md font-semibold text-gray-800">
-                                <div>
-                                    <span class="text-green-700">{{ $r->net }}</span><i class="fa-regular fa-circle-check text-green-700 ml-1"></i> 
-                                </div>
-                                <div class="ml-4">
-                                    <span class="text-gray-800">{{ floor($r->time_spent/60) }}m {{$r->time_spent % 60}}s</span><i class="fa-regular text-gray-800 fa-clock ml-1"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </li>
-                    @endforeach
-                </div>
-        </ul>
-    </div>
+<div class="w-full bg-gray-800 text-gray-100 rounded-2xl shadow-xl overflow-hidden border border-gray-700 flex flex-col min-h-[600px] max-h-[600px]">
     
+   
+    <div class="p-5 border-b border-gray-700 bg-gray-900/50">
+        <h2 class="text-xl font-bold flex items-center text-emerald-400">
+            <i class="fa-solid fa-trophy mr-2 text-yellow-500"></i> Liderlik Tablosu
+        </h2>
+        <p class="text-xs text-gray-400 mt-1">Bu quizdeki en iyi performanslar.</p>
+    </div>
+
+   
+    @if(!$rankings->isEmpty())
+    <div class="px-5 py-3 bg-gray-800/80">
+        <form method="GET" action="{{ route('quiz.show', $quiz->slug) }}" id="filtersForm" class="flex flex-wrap gap-2">
+            
+           
+            <label class="cursor-pointer relative">
+                <input type="checkbox" name="filters[]" value="multiple_attempts" 
+                       class="peer sr-only"
+                       {{ in_array('multiple_attempts', request()->filters ?? []) ? 'checked' : '' }}
+                       onchange="document.getElementById('filtersForm').submit()">
+                <div class="px-3 py-1 text-xs font-semibold rounded-full border border-gray-600 text-gray-400 transition-all peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-500 hover:bg-gray-700">
+                    <i class="fa-solid fa-layer-group mr-1"></i> Çoklu Deneme
+                </div>
+            </label>
+
+            <label class="cursor-pointer relative">
+                <input type="checkbox" name="filters[]" value="best_time" 
+                       class="peer sr-only"
+                       {{ in_array('best_time', request()->filters ?? []) ? 'checked' : '' }}
+                       onchange="document.getElementById('filtersForm').submit()">
+                <div class="px-3 py-1 text-xs font-semibold rounded-full border border-gray-600 text-gray-400 transition-all peer-checked:bg-purple-600 peer-checked:text-white peer-checked:border-purple-500 hover:bg-gray-700">
+                    <i class="fa-solid fa-stopwatch mr-1"></i> En İyi Süre
+                </div>
+            </label>
+
+        </form>
+    </div>
+    @endif
+
+  
+    <div class="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar" style="max-height: 500px;">
+        
+        @if($rankings->isEmpty())
+            <div class="flex flex-col items-center justify-center h-40 text-gray-500">
+                <i class="fa-regular fa-clipboard text-3xl mb-2"></i>
+                <span class="text-sm">Henüz kimse çözmedi.</span>
+                <span class="text-xs">İlk şampiyon sen ol!</span>
+            </div>
+        @else
+            @foreach($rankings as $i => $r)
+                @php
+                  
+                    $rankClass = 'bg-gray-700/50 border-gray-600'; 
+                    $icon = '';
+                    
+                    if ($i == 0) { 
+                        $rankClass = 'bg-gradient-to-r from-yellow-900/20 to-gray-800 border-yellow-600/50'; 
+                        $icon = '<i class="fa-solid fa-crown text-yellow-400 text-lg"></i>';
+                    } elseif ($i == 1) { 
+                        $rankClass = 'bg-gradient-to-r from-gray-500/20 to-gray-800 border-gray-400/50'; 
+                        $icon = '<i class="fa-solid fa-medal text-gray-300 text-lg"></i>';
+                    } elseif ($i == 2) { 
+                        $rankClass = 'bg-gradient-to-r from-orange-900/20 to-gray-800 border-orange-600/50'; 
+                        $icon = '<i class="fa-solid fa-medal text-orange-400 text-lg"></i>';
+                    }
+
+                 
+                    $isMe = ($r->user_id == $current_user_id || $r->session_id == $current_user_id);
+                    if ($isMe) {
+                        $rankClass .= ' ring-2 ring-emerald-500 bg-emerald-900/10';
+                    }
+                @endphp
+
+                <div class="flex items-center justify-between p-3 rounded-xl border {{ $rankClass }} transition hover:bg-gray-700">
+                    
+              
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 text-center font-bold text-gray-400">
+                            @if($icon) {!! $icon !!} @else #{{ $i + 1 }} @endif
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                        
+                            @if(!$r->user && $r->session_id)
+                                <div class="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white">
+                                    <i class="fa-solid fa-user-secret"></i>
+                                </div>
+                            @else
+                                <img src="{{ $r->user->avatar_url ? asset('storage/'.$r->user->avatar_url) : 'https://ui-avatars.com/api/?name='.$r->user->name.'&background=random' }}" 
+                                     alt="Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-gray-600">
+                            @endif
+                            
+                  
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-gray-200 {{ $isMe ? 'text-emerald-400' : '' }}">
+                                    {{ $r->user?->name ?? 'Guest-' . substr($r->session_id, 0, 4) }}
+                                </span>
+                                <span class="text-[10px] text-gray-500">{{ $r->created_at->diffForHumans() }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+               
+                    <div class="text-right">
+                        <div class="font-mono font-bold text-emerald-400 text-lg leading-none">
+                            {{ $r->net }} <span class="text-xs">Net</span>
+                        </div>
+                        <div class="text-xs text-gray-400 font-mono mt-1">
+                            {{ floor($r->time_spent/60) }}d {{$r->time_spent % 60}}s
+                        </div>
+                    </div>
+
+                </div>
+            @endforeach
+        @endif
+    </div>
 </div>

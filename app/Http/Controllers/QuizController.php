@@ -212,6 +212,13 @@ class QuizController extends Controller
         ]);
 
 
+        #librarye ekleme
+        $user = Auth::user();
+
+        /** @var \App\Models\User $user */  #PHP Intelephense sorunu
+        $user->libraryQuizzes()->attach($quiz->id);
+
+
         return redirect()->route("quiz.add.questions", $quiz)->with('success', 'Yeni Quiz Oluşturuldu.');
     }
 
@@ -259,12 +266,6 @@ class QuizController extends Controller
             }
         }
 
-        #librarye ekleme
-        $quiz = Quiz::findOrFail($request->quizId);
-        $user = Auth::user();
-
-        /** @var \App\Models\User $user */  #PHP Intelephense sorunu
-        $user->libraryQuizzes()->attach($quiz->id);
 
         return response()->json([
             "redirect" => route("library.show")

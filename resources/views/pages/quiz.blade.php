@@ -1,96 +1,168 @@
- @extends("layouts.app")
+@extends("layouts.app")
 
+@props(['quiz', 'rankings', 'current_user_id'])
 
- @props(['quiz','rankings','current_user_id'])
- @section("content")
- @php
-    $img = 'storage/' . $quiz->img_url
- 
- @endphp
- @use("App\Enums\Difficulty")
+@section("content")
 
-    @switch($quiz->difficulty)
-        @case(Difficulty::Easy)
-            @php $diffColor = "bg-blue-400"; @endphp
-            @break
-        @case(Difficulty::Medium)   
-            @php $diffColor = "bg-indigo-800";  @endphp    
-            @break  
-        @case(Difficulty::Hard)
-            @php $diffColor = "bg-rose-700"; @endphp
-            @break
-        @case(Difficulty::Expert)
-             @php $diffColor = "bg-[#d1a806]";  @endphp
-            @break 
-        @default   
-           @php $diffColor = "bg-emerald-600"; @endphp
-    @endswitch 
-     
+@use("App\Enums\Difficulty")
 
-<div class="w-full grid grid-cols-1 md:grid-cols-3 gap-12 p-8">
+@php
+    $diffColor = match($quiz->difficulty) {
+        'easy' => 'text-green-400 border-green-400',
+        'medium' => 'text-blue-400 border-blue-400',
+        'hard' => 'text-rose-500 border-rose-500',
+        'expert' => 'text-yellow-500 border-yellow-500',
+        default => 'text-gray-400 border-gray-400',
+    };
     
+    $diffBg = match($quiz->difficulty) {
+        'easy' => 'bg-green-400/10',
+        'medium' => 'bg-blue-400/10',
+        'hard' => 'bg-rose-500/10',
+        'expert' => 'bg-yellow-500/10',
+        default => 'bg-gray-400/10',
+    };
 
-    <div class=" w-full md:col-span-2 bg-gray-300 text-[#1A1B1C] rounded-2xl shadow-sm  shadow-gray-400/60 overflow-hidden h-200 flex flex-col  hover:shadow-md  cursor-pointer">
-      
-        <img class="w-full h-64 object-cover" 
-        @if($quiz->img_url)
-            src="{{ asset($img)}}"
-            alt="{{ $quiz->title }}"
-        @else 
-            src="{{ 'https://picsum.photos/400/200' }}"
-            alt="Quiz Image"
-        @endif
-        >
+    $imgUrl = $quiz->img_url ? asset('storage/' . $quiz->img_url) : 'https://picsum.photos/seed/'.$quiz->id.'/800/400';
+    $authorAvatar = $quiz->user->avatar_url ? asset('storage/' . $quiz->user->avatar_url) : null;
+@endphp
 
-  
-        <div class="p-4 flex-1 flex flex-col justify-between">
-  
-            <div class="mt-4">   
-                <h3 class="text-3xl font-bold">{{ $quiz->title }}</h3>
-                <p class="text-2xl font-semibold text-gray-700 mt-2">{{ $quiz->subject }}</p>
-                <div class="mt-2">
-                    <p class="text-sm font-semibold text-gray-700">{{ $quiz->description }}</p>
+<div class="min-h-screen w-full p-4 md:p-8">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+       
+        <div class="lg:col-span-2 space-y-6">
+   
+            <div class="bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-700">
+                
+             
+                <div class="relative h-64 md:h-80 w-full group">
+                    <img src="{{ $imgUrl }}" alt="{{ $quiz->title }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
+                    
+            
+                    <div class="absolute bottom-4 left-4 md:left-6">
+                        <span class="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg mb-2 inline-block">
+                            {{ $quiz->subject }}
+                        </span>
+                        <h1 class="text-3xl md:text-5xl font-extrabold text-white leading-tight drop-shadow-lg">
+                            {{ $quiz->title }}
+                        </h1>
+                    </div>
                 </div>
 
-            </div>
+                <div class="p-6 md:p-8">
+                    
+                    
+                    <div class="flex items-start justify-between mb-8 border-b border-gray-700 pb-6">
+                        <div class="flex items-center gap-4">
+                            @if($authorAvatar)
+                                <img src="{{ $authorAvatar }}" class="w-12 h-12 rounded-full border-2 border-gray-600">
+                            @else
+                                <i class="fa-solid fa-circle-user text-gray-400 text-5xl"></i>
+                            @endif
+                            <div>
+                                <p class="text-sm text-gray-400">Oluşturan</p>
+                                <p class="text-lg font-bold text-gray-200">{{ $quiz->user->name }}</p>
+                            </div>
+                        </div>
+                        
+                       
+                        <div class="text-right">
+                             <div class="flex items-center gap-2 text-gray-400 text-sm">
+                                <i class="fa-solid fa-users"></i> Çözülme
+                             </div>
+                             <p class="text-2xl font-mono font-bold text-white">
+                                 {{ $quiz->solvers()->wherePivot("is_completed",true)->count() }}
+                             </p>
+                        </div>
+                    </div>
 
-            <div class="p-4">
-                <ul class="list-disc text-md font-semibold font-mono text-gray-800 space-y-2">
-                    <li>{{ $quiz->number_of_questions }} questions <i class="fa-solid fa-pencil"></i></li>
-                    <li>{{ $quiz->number_of_options }} options <i class="fa-solid fa-circle-stop"></i></li>
-                    <li>{{ $quiz->duration_minutes }} minutes <i class="fa-regular fa-clock"></i></li>
-                    <li><span class='{{$diffColor}} text-white text-xs font-semibold px-3 py-1 rounded-full'>{{ $quiz->difficulty }}</span> difficulty <i class="fa-solid fa-skull"></i></li>
-                    <li>{{ $quiz->wrong_to_correct_ratio }}  wrong answers cancel out 1 correct answer <i class="fa-regular fa-circle-xmark"></i></li>
-                    <li>{{ $quiz->solvers()->wherePivot("is_completed",true)->count()}} times solved <i class="fa-regular fa-circle-check"></i></li>
-                </ul>
-            </div>
+                  
+                    @if($quiz->description)
+                        <div class="mb-8 p-4 bg-gray-700/30 rounded-xl border-l-4 border-blue-500">
+                            <h3 class="text-sm font-bold text-gray-300 mb-1">Açıklama</h3>
+                            <p class="text-gray-400 italic">{{ $quiz->description }}</p>
+                        </div>
+                    @endif
 
-            <div class="flex row p-2">
-                <a href="{{ route("quiz.start",$quiz) }}">
-                <button 
-                    class="w-32 mt-2 bg-[#41825e] transition-all duration-300 transform font-semibold hover:scale-105 hover:bg-[#357652] text-white p-2 rounded cursor-pointer">
-                    Start Quiz
-                </button>
-                </a>
-                 @if (Auth::check())
-                    <form action="{{ route('library.add', $quiz) }}" method="POST">
-                        @csrf
-                        <button type="submit"
-                            class="w-20 ml-4 mt-2 bg-[#417582] transition-all duration-300 transform font-semibold hover:scale-105 hover:bg-[#2c606d] text-white p-2 rounded cursor-pointer">
-                            Add <i class="fa-solid fa-plus"></i>
-                        </button>
-                    </form>
-                @endif
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                     
+                        <div class="bg-gray-700/40 p-4 rounded-xl text-center border border-gray-700">
+                            <i class="fa-solid fa-list-ol text-2xl text-purple-400 mb-2"></i>
+                            <p class="text-xs text-gray-400 uppercase">Soru Sayısı</p>
+                            <p class="text-xl font-bold text-white">{{ $quiz->number_of_questions }}</p>
+                        </div>
+
+                        <div class="bg-gray-700/40 p-4 rounded-xl text-center border border-gray-700">
+                            <i class="fa-regular fa-clock text-2xl text-blue-400 mb-2"></i>
+                            <p class="text-xs text-gray-400 uppercase">Süre</p>
+                            <p class="text-xl font-bold text-white">{{ $quiz->duration_minutes }} dk</p>
+                        </div>
+
+                  
+                        <div class="bg-gray-700/40 p-4 rounded-xl text-center border {{ $diffColor }} {{ $diffBg }}">
+                            <i class="fa-solid fa-layer-group text-2xl mb-2"></i>
+                            <p class="text-xs opacity-70 uppercase">Zorluk</p>
+                            <p class="text-xl font-bold uppercase">{{ $quiz->difficulty }}</p>
+                        </div>
+
+                    
+                        <div class="bg-gray-700/40 p-4 rounded-xl text-center border border-gray-700">
+                            <i class="fa-regular fa-circle-dot text-2xl text-pink-400 mb-2"></i>
+                            <p class="text-xs text-gray-400 uppercase">Seçenek</p>
+                            <p class="text-xl font-bold text-white">{{ $quiz->number_of_options }} Şık</p>
+                        </div>
+
+                        <div class="bg-gray-700/40 p-4 rounded-xl text-center border border-gray-700 col-span-2 md:col-span-2">
+                            <div class="flex items-center justify-center gap-4">
+                                <i class="fa-solid fa-scale-unbalanced text-3xl text-orange-400"></i>
+                                <div class="text-left">
+                                    <p class="text-xs text-gray-400 uppercase">Değerlendirme</p>
+                                    <p class="text-sm font-bold text-white">
+                                        @if($quiz->wrong_to_correct_ratio > 0)
+                                            <span class="text-orange-400">{{ $quiz->wrong_to_correct_ratio }} Yanlış</span>, 1 Doğruyu Götürür.
+                                        @else
+                                            <span class="text-green-400">Net Hesabı Yok</span> (Yanlış doğruyu götürmez).
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                  
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="{{ route('quiz.start', $quiz) }}" class="flex-1">
+                            <button class="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-green-900/50 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-play"></i> Quize Başla
+                            </button>
+                        </a>
+
+                        @if (Auth::check())
+                            <form action="{{ route('library.add', $quiz) }}" method="POST" class="sm:w-auto">
+                                @csrf
+                                <button type="submit" class="w-full sm:w-auto px-8 py-4 bg-gray-700 hover:bg-gray-600 text-blue-300 border border-gray-600 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-bookmark"></i>
+                                    <span class="hidden sm:inline">Kütüphaneye Ekle</span>
+                                    <span class="sm:hidden">Ekle</span>
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+
+                </div>
             </div>
-            <div>
-                <div class="flex items-center mb-2">
-                    <img src="https://i.pravatar.cc/100" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
-                    <span class="font-semibold text-sm">Created by {{ $quiz->user->name }}</span>
-                </div>  
         </div>
+
+     
+        <div class="lg:col-span-1 h-full">
+            <x-success_rank_sidebar :quiz="$quiz" :rankings="$rankings" :current_user_id="$current_user_id"/>
         </div>
+
     </div>
-        <x-success_rank_sidebar :quiz="$quiz" :rankings="$rankings" :current_user_id="$current_user_id"/>
 </div>
 
- @endsection
+@endsection
