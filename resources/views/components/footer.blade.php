@@ -1,21 +1,70 @@
-<div class="mt-5 p-10 items-center flex flex-col w-full h-40 bg-[#1A1B1C] text-white">
-    {{-- <div>
-        <ul>
-            <li><strong>Oluştur:</strong> İstediğin konuda, istediğin şekilde kendi quizlerini saniyeler içinde oluştur.</li>
-            <li><strong>Kütüphane:</strong> Oluşturduğun ve çözdüğün quizleri kütüphanende sakla, istediğin zaman tekrar çöz.</li>
-            <li><strong>Keşfet:</strong> Diğer kullanıcıların hazırladığı binlerce quiz arasından sana en uygun olanları bul.</li>
-            <li><strong>Yapay Zeka Gücü:</strong> Yapay zeka ile hızlı ve pratik bir şekilde quizler oluştur.</li>
-            <li><strong>Kendini Geliştir:</strong>  Eksiklerini gör, kendini ölç ve bilgilerini pekiştir.</li>
-        </ul>
-        <p class="text-md font-semibold font-mono">Yapay zekanın gücüyle saniyeler içinde quizler hazırla, çözdükçe geliş ve bilgini paylaşarak büyüyen bir topluluğun parçası ol.</p>
-    </div> --}}
-    <div>
-        <p class="text-md font-semibold font-mono">© 2025 Quizzo - All Rights Reserved</p>
+<footer class="w-full bg-[#1A1B1C] shadow-neutral-500 shadow-xl  text-gray-400 mt-auto">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+            
+            <div class="space-y-4">
+                <a href="{{ route('home') }}" class="flex items-center gap-2 group w-fit">
+                    <span class="text-2xl font-major-mono font-extrabold text-white tracking-widest  transition-colors">Quizzo</span>
+                </a>
+                <p class="text-sm leading-relaxed max-w-xs">
+                    Bilgini test et, sınırlarını zorla. Kendi quizlerini oluştur veya topluluğun hazırladığı içerikleri keşfet.
+                </p>
+                <div class="flex gap-4 pt-2">
+                    {{-- Sosyal Medya İkonları (Placeholder) --}}
+                    <a href="#" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 hover:bg-[#41825e] hover:text-white transition-all">
+                        <i class="fa-brands fa-twitter"></i>
+                    </a>
+                    <a href="#" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 hover:bg-[#41825e] hover:text-white transition-all">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-white font-bold mb-4">Platform</h3>
+                <ul class="space-y-3 text-sm">
+                    <li>
+                        <a href="{{ route('home') }}" class="hover:text-gray-200 transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-angle-right text-xs"></i> Ana Sayfa
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('library.show') }}" class="hover:text-gray-200  transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-angle-right text-xs"></i> Kütüphane
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('quiz.create') }}" class="hover:text-gray-200  transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-angle-right text-xs"></i> Quiz Oluştur
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('exam.create') }}" class="hover:text-gray-200  transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-angle-right text-xs"></i> Sınav Hazırla
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="text-white font-bold mb-4">Geliştirici</h3>
+                <div class="bg-[#212121] border border-gray-700 p-4 rounded-xl flex items-center gap-4 group hover:border-gray-600 transition-colors">
+                    <div class="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-white text-2xl group-hover:bg-gray-700 transition-colors">
+                        <i class="fa-brands fa-github"></i>
+                    </div>
+                    <div>
+                        <p class="text-white font-bold text-sm">Ensar A.</p>
+                        <a href="https://github.com/EEnsarA" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 font-mono">
+                            @EEnsarA
+                        </a>
+                    </div>
+                </div>
+                <p class="text-xs mt-4 text-gray-500">
+                    &copy; {{ date('Y') }} Quizzo. Tüm hakları saklıdır.
+                </p>
+            </div>
+
+        </div>
     </div>
-    <div class="mt-3">
-        <a href="https://github.com/EEnsarA" class="hover:text-blue-500">
-            <i class="fa-brands fa-github fa-lg"></i>
-            <span class="ml-1 font-semibold font-mono">EEnsarA</span>
-        </a>
-    </div>  
-</div>
+</footer>

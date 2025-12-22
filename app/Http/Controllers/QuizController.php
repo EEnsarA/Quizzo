@@ -193,8 +193,8 @@ class QuizController extends Controller
         if ($request->hasFile("img_url")) {
             # benzersiz isim 
             $filename = uniqid() . "-" . $request->file("img_url")->getClientOriginalName();
-            # storage/app/public/uploads/ kısmına img unique bir şekilde kaydetme 
-            $path = $request->file("img_url")->storeAs("uploads", $filename, "public");
+
+            $path = $request->file("img_url")->storeAs("uploads/quizImages", $filename, "public");
         }
 
 

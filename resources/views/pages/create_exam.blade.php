@@ -3,159 +3,168 @@
 @section("content")
 
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-
-<div class="flex w-full h-screen overflow-hidden bg-gray-100">
+<div class="flex w-full h-screen overflow-hidden bg-[#1e1e1e] font-sans">
     
-
-    <aside class="flex-none w-[250px] bg-white border-r border-gray-200 p-5 shadow-lg z-10 flex flex-col overflow-y-auto">
+    
+    <aside class="flex-none w-80 bg-[#252526] border-r border-[#3e3e42] flex flex-col shadow-2xl z-20">
         
-        <div>
-            <h3 class="text-xl font-semibold text-gray-800 border-b-2 border-[#0B2B8C] pb-2 mt-0">
-                Bileşenler
+      
+        <div class="p-5 border-b border-[#3e3e42] bg-[#2d2d30]">
+            <h3 class="text-white font-bold flex items-center gap-2">
+                <i class="fa-solid fa-toolbox text-blue-500"></i> Araç Kutusu
             </h3>
+            <p class="text-xs text-gray-400 mt-1">Bileşenleri kağıda sürükleyin.</p>
+        </div>
+
+    
+        <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
             
-            <ul class="list-none p-0 mt-4 space-y-2">
-                
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-[#0B2B8C] hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
-                    <i class="fa-solid fa-heading w-5 h-5 mr-2 text-center"></i>
-                    Sınav Başlığı
-                </li>
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-[#0B2B8C] hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
-                    <i class="fa-solid fa-image w-5 h-5 mr-2 text-center"></i>
-                    Okul Logosu
-                </li>
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-[#0B2B8C] hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
-                    <i class="fa-solid fa-user-graduate w-5 h-5 mr-2 text-center"></i>
-                    Öğrenci Bilgi Alanı
-                </li>
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-[#0B2B8C] hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
-                    <i class="fa-solid fa-list-check w-5 h-5 mr-2 text-center"></i>
-                    Çoktan Seçmeli Soru
-                </li>
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-md cursor-grab transition-all duration-150 hover:bg-gray-100 hover:border-[#0B2B8C] hover:text-black active:cursor-grabbing active:bg-blue-500 active:text-white" draggable="true">
-                    <i class="fa-solid fa-align-left w-5 h-5 mr-2 text-center"></i>
-                    Açık Uçlu Soru
-                </li>
-            </ul>
-        </div>
-    
-        <div class="mt-6 pt-6 border-t border-gray-200">
-            <h3 class="text-xl font-semibold text-gray-800 border-b-2 border-[#0B2B8C] pb-2 mt-0">
-                Soru Kaynağı Oluştur
-            </h3>
-
-            <div class="mt-4 space-y-3">
-                
-
-                <div>
-                    <label for="file-upload" class="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-md cursor-pointer bg-gray-50 hover:bg-gray-100">
-                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400"></i>
-                            <p class="text-sm text-gray-500"><span class="font-semibold">Slayt / Döküman</span> yükle</p>
-                        </div>
-                        <input id="file-upload" name="file-upload" type="file" class="hidden" />
-                    </label>
+          
+            <div>
+                <h4 class="text-xs font-bold text-gray-500 uppercase mb-3 tracking-wider">Temel Öğeler</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="group bg-[#333333] hover:bg-[#3e3e42] p-3 rounded-lg border border-[#3e3e42] hover:border-blue-500 cursor-grab active:cursor-grabbing transition-all flex flex-col items-center justify-center gap-2 text-gray-300 hover:text-white" draggable="true">
+                        <i class="fa-solid fa-heading text-xl"></i>
+                        <span class="text-xs font-medium">Başlık</span>
+                    </div>
+                    <div class="group bg-[#333333] hover:bg-[#3e3e42] p-3 rounded-lg border border-[#3e3e42] hover:border-blue-500 cursor-grab active:cursor-grabbing transition-all flex flex-col items-center justify-center gap-2 text-gray-300 hover:text-white" draggable="true">
+                        <i class="fa-solid fa-image text-xl"></i>
+                        <span class="text-xs font-medium">Logo / Resim</span>
+                    </div>
+                    <div class="col-span-2 group bg-[#333333] hover:bg-[#3e3e42] p-3 rounded-lg border border-[#3e3e42] hover:border-blue-500 cursor-grab active:cursor-grabbing transition-all flex items-center gap-3 text-gray-300 hover:text-white" draggable="true">
+                        <i class="fa-solid fa-user-graduate"></i>
+                        <span class="text-xs font-medium">Öğrenci Bilgi Kutusu</span>
+                    </div>
                 </div>
-           
-                <button class="w-full flex items-center justify-center p-3 font-semibold text-white bg-[#0B2B8C] rounded-md transition hover:bg-blue-800 active:bg-blue-800 cursor-pointer">
-                    <i class="fa-solid fa-wand-magic-sparkles w-5 h-5 mr-2 text-center"></i>
-                    AI ile Soru Oluştur
-                </button>
             </div>
-    
-            <h3 class="text-lg font-semibold text-gray-700 mt-6 pb-2">
-                AI Soruları (Hazır)
-            </h3>
-            <ul class="list-none p-0 mt-2 space-y-2">
-   
-                <li class="flex items-center p-3 font-medium text-gray-700 bg-green-50 border border-green-300 rounded-md cursor-grab transition-all duration-150 hover:bg-green-100 hover:border-green-500 hover:text-black active:cursor-grabbing active:bg-green-500 active:text-white" draggable="true">
-                    <i class="fa-solid fa-list-check w-5 h-5 mr-2 text-center"></i>
-                    AI Soru 1 (Çoktan Seçmeli)
-                </li>
-                 <li class="flex items-center p-3 font-medium text-gray-700 bg-green-50 border border-green-300 rounded-md cursor-grab transition-all duration-150 hover:bg-green-100 hover:border-green-500 hover:text-black active:cursor-grabbing active:bg-green-500 active:text-white" draggable="true">
-                    <i class="fa-solid fa-align-left w-5 h-5 mr-2 text-center"></i>
-                    AI Soru 2 (Açık Uçlu)
-                </li>
-            </ul>
+
+          
+            <div>
+                <h4 class="text-xs font-bold text-gray-500 uppercase mb-3 tracking-wider">Soru Tipleri</h4>
+                <div class="space-y-2">
+                    <div class="group bg-[#333333] hover:bg-[#3e3e42] p-3 rounded-lg border border-[#3e3e42] hover:border-green-500 cursor-grab active:cursor-grabbing transition-all flex items-center gap-3 text-gray-300 hover:text-white" draggable="true">
+                        <div class="w-8 h-8 rounded bg-green-900/30 text-green-500 flex items-center justify-center"><i class="fa-solid fa-list-ul"></i></div>
+                        <span class="text-sm font-medium">Çoktan Seçmeli</span>
+                    </div>
+                    <div class="group bg-[#333333] hover:bg-[#3e3e42] p-3 rounded-lg border border-[#3e3e42] hover:border-orange-500 cursor-grab active:cursor-grabbing transition-all flex items-center gap-3 text-gray-300 hover:text-white" draggable="true">
+                        <div class="w-8 h-8 rounded bg-orange-900/30 text-orange-500 flex items-center justify-center"><i class="fa-solid fa-align-left"></i></div>
+                        <span class="text-sm font-medium">Klasik (Açık Uçlu)</span>
+                    </div>
+                    <div class="group bg-[#333333] hover:bg-[#3e3e42] p-3 rounded-lg border border-[#3e3e42] hover:border-purple-500 cursor-grab active:cursor-grabbing transition-all flex items-center gap-3 text-gray-300 hover:text-white" draggable="true">
+                        <div class="w-8 h-8 rounded bg-purple-900/30 text-purple-500 flex items-center justify-center"><i class="fa-solid fa-check-double"></i></div>
+                        <span class="text-sm font-medium">Doğru / Yanlış</span>
+                    </div>
+                </div>
+            </div>
+
+        
+            <div class="pt-4 border-t border-[#3e3e42]">
+                <h4 class="text-xs font-bold text-blue-400 uppercase mb-3 tracking-wider">AI Destek</h4>
+         
+                <button class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3 rounded-lg shadow-lg flex items-center justify-center gap-2 mb-4 transition-all group">
+                    <i class="fa-solid fa-wand-magic-sparkles group-hover:animate-pulse"></i>
+                    <span class="font-bold text-sm">AI ile Soru Üret</span>
+                </button>
+
+                <label class="block w-full border border-dashed border-gray-600 rounded-lg p-4 text-center cursor-pointer hover:bg-[#333333] hover:border-gray-500 transition-colors group">
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-500 group-hover:text-gray-300 mb-2"></i>
+                    <span class="block text-xs text-gray-400">PDF/Word Kaynağı Yükle</span>
+                    <input type="file" class="hidden">
+                </label>
+            </div>
 
         </div>
-        
     </aside>
 
 
-    <main class="flex-1 flex flex-col overflow-hidden">
+ 
+    <main class="flex-1 flex flex-col min-w-0 bg-[#1e1e1e]">
         
-  
-        <header class="flex justify-between items-center py-4 px-6 bg-white border-b border-gray-200 shadow-sm">
-            <input type="text" value="Yeni Sınav Kağıdı" class="text-2xl font-semibold text-gray-800 border-none rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Sınav Başlığı Girin...">
-            <div class="space-x-3">
-                <button class="font-medium rounded-lg text-sm px-6 py-2.5 text-white bg-gray-500 transition hover:bg-gray-600 cursor-pointer">
-                    Kaydet
+     
+        <header class="h-16 bg-[#252526] border-b border-[#3e3e42] flex justify-between items-center px-6 shadow-md z-10">
+      
+            <div class="flex items-center gap-2 w-1/3">
+                <i class="fa-regular fa-pen-to-square text-gray-500"></i>
+                <input type="text" value="Yeni Sınav Kağıdı" 
+                       class="bg-transparent border-none text-white font-bold text-lg focus:ring-0 w-full placeholder-gray-600" 
+                       placeholder="Sınav Başlığı...">
+            </div>
+
+           
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-gray-500 mr-2 flex items-center gap-1">
+                    <div class="w-2 h-2 rounded-full bg-green-500"></div> Kaydedildi
+                </span>
+                <button class="px-4 py-2 bg-[#3e3e42] hover:bg-[#4e4e52] text-white rounded-md text-sm font-medium transition-colors">
+                    <i class="fa-regular fa-eye mr-1"></i> Önizle
                 </button>
-                <button type="button" class="text-white bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800  font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 cursor-pointer">
-                    PDF İndir
+                <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-sm font-medium shadow-lg transition-colors flex items-center gap-2">
+                    <i class="fa-solid fa-download"></i> PDF İndir
                 </button>
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-8 flex justify-center bg-gray-100">
+        <div class="flex-1 overflow-y-auto p-8 md:p-12 flex justify-center bg-[#1e1e1e] relative">
             
-   
-            <div id="a4-page" class="bg-white w-[21cm] min-h-[29.7cm] shadow-xl p-[2cm] box-border relative">
-                
-  
-
-                <div class="absolute border border-dashed border-transparent p-2 hover:border-blue-500 hover:cursor-move" style="top: 2cm; left: 2cm; width: 17cm;">
+            <div id="a4-page" class="bg-white w-[21cm] min-h-[29.7cm] shadow-[0_0_50px_rgba(0,0,0,0.5)] p-[2cm] relative transition-transform origin-top">
+            
+                <div class="group relative border border-transparent hover:border-dashed hover:border-blue-400 p-2 mb-6 cursor-move">
                     <div class="text-center">
-                        <h2 class="text-xl font-bold">Atatürk Üniversitesi</h2>
-                        <h3 class="text-lg font-semibold">Mühendislik Fakültesi - 2025 Güz Dönemi</h3>
-                        <h4 class="text-base font-medium">BM-101 Programlamaya Giriş Vize Sınavı</h4>
+                        <h2 class="text-xl font-bold font-serif text-black uppercase">Atatürk Üniversitesi</h2>
+                        <h3 class="text-lg font-semibold text-gray-800">Mühendislik Fakültesi</h3>
+                        <h4 class="text-base mt-1">2025-2026 Güz Dönemi Vize Sınavı</h4>
+                    </div>
+                 
+                    <div class="absolute -right-8 top-0 hidden group-hover:flex flex-col gap-1">
+                        <button class="w-6 h-6 bg-blue-500 text-white rounded flex items-center justify-center shadow"><i class="fa-solid fa-pen text-xs"></i></button>
+                        <button class="w-6 h-6 bg-red-500 text-white rounded flex items-center justify-center shadow"><i class="fa-solid fa-trash text-xs"></i></button>
                     </div>
                 </div>
 
-                <div class="absolute border border-dashed border-transparent p-4 hover:border-blue-500 hover:cursor-move bg-gray-50 border-gray-200 rounded-md" style="top: 6cm; left: 2cm; width: 17cm;">
-                    <table class="w-full text-sm">
-                        <tbody>
-                            <tr>
-                                <td class="w-1/2 pb-2"><strong>Ad Soyad:</strong> _________________________</td>
-                                <td class="w-1/2 pb-2"><strong>Puan:</strong> _____ / 100</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Öğrenci No:</strong> _________________________</td>
-                                <td><strong>Tarih:</strong> 30.10.2025</td>
-                            </tr>
-                        </tbody>
+                <div class="group relative border border-transparent hover:border-dashed hover:border-blue-400 p-4 mb-8 bg-gray-50 border-gray-300 rounded cursor-move">
+                    <table class="w-full text-sm font-mono text-black">
+                        <tr>
+                            <td class="pb-2 w-1/2"><strong>Adı Soyadı:</strong> ............................................</td>
+                            <td class="pb-2 w-1/2 text-right"><strong>Numara:</strong> ...........................</td>
+                        </tr>
+                        <tr>
+                            <td><strong>İmza:</strong> ........................................................</td>
+                            <td class="text-right"><strong>Puan:</strong> ......... / 100</td>
+                        </tr>
                     </table>
                 </div>
 
-               
-                <div class="absolute border border-dashed border-transparent p-2 hover:border-blue-500 hover:cursor-move" style="top: 9cm; left: 2cm; width: 17cm;">
-                    <p class="font-bold">Soru 1 (10 Puan): <span class="font-normal">Aşağıdakilerden hangisi bir programlama dili değildir?</span></p>
-                  
-                    <ol class="list-[upper-alpha] list-inside pl-4 mt-2 space-y-1">
-                        <li>Python</li>
-                        <li>HTML</li>
-                        <li>Java</li>
-                        <li>C++</li>
-                    </ol>
-                </div>
-
-                <div class="mt-12 absolute border border-dashed border-transparent p-2 hover:border-blue-500 hover:cursor-move" style="top: 12cm; left: 2cm; width: 17cm;">
-                    <p class="font-bold">Soru 2 (15 Puan): <span class="font-normal">"Değişken" (variable) kavramını tek bir cümle ile açıklayınız.</span></p>
-                    <div class="w-full h-[100px] border border-gray-300 bg-gray-50 mt-2 rounded-md">
+                {{-- 3. Sorular --}}
+                <div class="space-y-6 text-black">
+                    
+                    {{-- Soru 1 --}}
+                    <div class="group relative pl-2 hover:bg-blue-50/30 -ml-2 p-2 border-l-4 border-transparent hover:border-blue-500 transition-all cursor-pointer">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-bold">1. Aşağıdakilerden hangisi bir 'Döngü' yapısı değildir? (10p)</span>
+                        </div>
+                        <ol class="list-[upper-alpha] list-inside pl-4 space-y-1 text-sm">
+                            <li>For</li>
+                            <li>While</li>
+                            <li>If-Else</li>
+                            <li>Do-While</li>
+                        </ol>
                     </div>
+
+                    {{-- Soru 2 --}}
+                    <div class="group relative pl-2 hover:bg-blue-50/30 -ml-2 p-2 border-l-4 border-transparent hover:border-blue-500 transition-all cursor-pointer">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-bold">2. Nesne Yönelimli Programlama (OOP) prensiplerini yazınız. (20p)</span>
+                        </div>
+                        <div class="w-full h-24 border-b border-gray-300 bg-[linear-gradient(to_bottom,transparent_29px,#ccc_30px)] bg-[size:100%_30px]"></div>
+                    </div>
+
                 </div>
 
             </div>
-           
 
         </div>
-        
 
     </main>
-
 
 </div>
 
