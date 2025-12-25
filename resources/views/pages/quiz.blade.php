@@ -23,7 +23,7 @@
         default => 'bg-gray-400/10',
     };
 
-    $imgUrl = $quiz->img_url ? asset('storage/' . $quiz->img_url) : 'https://picsum.photos/seed/'.$quiz->id.'/800/400';
+    $imgUrl = $quiz->img_url ? asset('storage/' . $quiz->img_url) : null;
     $authorAvatar = $quiz->user->avatar_url ? asset('storage/' . $quiz->user->avatar_url) : null;
 @endphp
 
@@ -35,9 +35,14 @@
    
             <div class="bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-700">
                 
-             
                 <div class="relative h-64 md:h-80 w-full group">
-                    <img src="{{ $imgUrl }}" alt="{{ $quiz->title }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                    @if($quiz->img_url != null)
+                        <img src="{{ $imgUrl }}" alt="{{ $quiz->title }}" class="w-full h-full object-cover ">
+                    @else
+                        <div class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex flex-col items-center justify-center">
+                            <i class="fa-solid fa-book-open text-4xl text-gray-600 mb-2 group-hover:text-gray-500 transition-colors"></i>  
+                        </div>
+                    @endif
                     <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
                     
             

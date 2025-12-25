@@ -52,3 +52,5 @@ Route::get("/dashboard", [UserController::class, "dashboard"])->middleware("auth
 Route::get("/profile", [UserController::class, "profile"])->name("profile");
 
 Route::post("/profile/update-avatar", [UserController::class, "updateAvatar"])->name("profile.avatar");
+
+Route::get("exam_creator/test", [ExamController::class, "test"])->name("test");

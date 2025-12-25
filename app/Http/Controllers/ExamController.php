@@ -10,4 +10,9 @@ class ExamController extends Controller
     {
         return view("pages.create_exam");
     }
+
+    public function test()
+    {
+        return view("pages.test");
+    }
 }

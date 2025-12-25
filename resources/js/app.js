@@ -2,12 +2,13 @@ import axios from 'axios';
 import Alpine from "alpinejs"
 import './bootstrap';
 import persist from '@alpinejs/persist';
+import interact from 'interactjs';
 
 //Alpinejs
 Alpine.plugin(persist)
 
 window.Alpine = Alpine
-
+window.interact = interact;
 
 Alpine.store("sidebar", {
     open: Alpine.$persist(true)
@@ -294,6 +295,7 @@ Alpine.data("questionCreate", (props = {}) => ({
 
 }))
 
+//? Profile Avatar
 Alpine.data("profileAvatar", (props = {}) => ({
 
     previewUrl: props.initialUrl || '',
@@ -330,5 +332,309 @@ Alpine.data("profileAvatar", (props = {}) => ({
 
 }))
 
+
+//? Exam Canvas
+Alpine.data("examCanvas", () => ({
+    elements: [],
+    selectedId: null,
+    draggingType: null,
+    draggingPayload: null,
+    cursorMode: 'select',
+
+
+    activePage: 1,
+    totalPages: 1,
+
+
+    aiPrompt: '',
+    aiContext: '',
+    aiFile: null,
+    aiDifficulty: 'medium',
+
+
+    aiModalOpen: false,
+    activeAiItem: null,
+    aiBatchModalOpen: false,
+
+
+    aiRequests: [{ type: 'multiple_choice', count: 1, difficulty: 'medium', option_count: 4 }],
+    aiPoolGroups: [],
+    aiLoading: false,
+
+
+    get currentPageElements() {
+        if (!Array.isArray(this.elements)) return [];
+        return this.elements.filter(el => el.page === this.activePage);
+    },
+
+    get selectedItem() {
+        return this.elements.find(el => el.id === this.selectedId);
+    },
+
+
+    init() {
+
+        this.elements = this.elements.filter(el => el.id && el.page);
+
+        this.setupInteract();
+
+        setTimeout(() => {
+            if (this.elements.length === 0) {
+                this.addItem('header_block', 400, 80);
+                this.addItem('student_info', 400, 200);
+            }
+        }, 300);
+    },
+
+
+    setupInteract() {
+        if (typeof interact === 'undefined') return;
+        const self = this;
+
+        interact('.draggable-item')
+            .draggable({
+                modifiers: [
+                    interact.modifiers.restrictRect({
+                        restriction: 'parent',
+                        endOnly: false,
+                        elementRect: { top: 0, left: 0, bottom: 1, right: 1 }
+                    })
+                ],
+                listeners: {
+                    move(event) {
+                        if (self.cursorMode !== 'select') return;
+                        const id = parseFloat(event.target.id);
+                        const item = self.elements.find(el => el.id === id);
+                        if (item) { item.x += event.dx; item.y += event.dy; }
+                    }
+                }
+            })
+            .resizable({
+                edges: { left: true, right: true, bottom: true, top: true },
+                modifiers: [interact.modifiers.restrictEdges({ outer: 'parent' }), interact.modifiers.restrictSize({ min: { width: 50, height: 20 } })],
+                listeners: {
+                    move(event) {
+                        if (self.cursorMode !== 'select') return;
+                        const id = parseFloat(event.target.id);
+                        const item = self.elements.find(el => el.id === id);
+                        if (item) {
+                            item.w = event.rect.width; item.h = event.rect.height;
+                            item.x += event.deltaRect.left; item.y += event.deltaRect.top;
+                        }
+                    }
+                }
+            });
+    },
+
+
+    dragStart(event, type, groupIndex) {
+        this.draggingType = type;
+        if (groupIndex !== undefined && this.aiPoolGroups[groupIndex]) {
+            this.draggingPayload = JSON.parse(JSON.stringify(this.aiPoolGroups[groupIndex].questions[0]));
+            event.dataTransfer.setData('groupIndex', groupIndex);
+        } else {
+            this.draggingPayload = null;
+        }
+        event.dataTransfer.effectAllowed = 'copy';
+        event.dataTransfer.setData('text/plain', type);
+    },
+
+    handleDrop(event) {
+        const paper = document.getElementById('paper');
+        const rect = paper.getBoundingClientRect();
+
+        let x = event.clientX - rect.left;
+        let y = event.clientY - rect.top;
+
+        const paperWidth = paper.offsetWidth;
+        const paperHeight = paper.offsetHeight;
+
+        const defaultW = 200;
+        const defaultH = 50;
+
+        if (x < 0) x = 0;
+        if (y < 0) y = 0;
+        if (x + defaultW > paperWidth) x = paperWidth - defaultW;
+        if (y + defaultH > paperHeight) y = paperHeight - defaultH;
+
+        if (this.draggingType) {
+            this.addItem(this.draggingType, x, y, this.draggingPayload);
+
+            const groupIndex = event.dataTransfer.getData('groupIndex');
+            if (groupIndex !== '' && this.aiPoolGroups[groupIndex]) {
+                this.aiPoolGroups[groupIndex].questions.shift();
+                this.aiPoolGroups[groupIndex].count--;
+                if (this.aiPoolGroups[groupIndex].count <= 0) {
+                    this.aiPoolGroups.splice(groupIndex, 1);
+                }
+            }
+            this.draggingType = null;
+            this.draggingPayload = null;
+        }
+    },
+
+
+    addItem(type, x = 50, y = 50, preFilledContent = null) {
+        let width = 200, height = 50, content = {};
+        let styles = { fontSize: 14, color: '#000000', fontWeight: 'normal', textAlign: 'left', zIndex: 1, borderWidth: 0, borderColor: '#000000', backgroundColor: 'transparent', borderRadius: 0 };
+
+
+        if (type === 'header_block') { width = 600; height = 100; content = { title: 'ATATÜRK ÜNİVERSİTESİ', faculty: 'Mühendislik Fakültesi', term: '2025-2026 Güz Dönemi' }; styles.textAlign = 'center'; styles.fontWeight = 'bold'; }
+        else if (type === 'student_info') {
+            width = 700; height = 80; styles.borderWidth = 1; styles.borderColor = '#ccc'; styles.backgroundColor = '#f9fafb'; styles.borderRadius = 8;
+            content = { label1: 'Adı Soyadı:', val1: '.......................................', label2: 'Numara:', val2: '.......................', label3: 'İmza:', val3: '.................................', label4: 'Puan:', val4: '....... / 100' };
+        }
+        else if (type === 'multiple_choice') { width = 700; height = 150; content = { question: 'Soru metnini buraya giriniz...', point: '10', options: ['A) ...', 'B) ...', 'C) ...', 'D) ...'] }; }
+        else if (type === 'open_ended') { width = 700; height = 120; content = { question: 'Klasik soru metnini buraya giriniz...', point: '20' }; }
+        else if (type === 'fill_in_blanks') { width = 700; height = 60; content = { question: 'Boşluk doldurma sorusu...', point: '5' }; }
+        else if (type === 'true_false') { width = 700; height = 50; content = { question: 'Doğru yanlış sorusu...', point: '5', format: '( D / Y )' }; }
+        else if (type === 'custom_question') { width = 400; height = 200; styles.borderWidth = 1; styles.borderColor = '#e5e7eb'; content = { text: 'Özel Soru Alanı' }; }
+        else if (type === 'heading') { content = 'Ana Başlık'; width = 300; height = 50; styles.fontSize = 24; styles.fontWeight = 'bold'; }
+        else if (type === 'sub_heading') { content = 'Alt Başlık'; width = 250; height = 40; styles.fontSize = 18; styles.fontWeight = 'bold'; styles.color = '#555'; }
+        else if (type === 'text') { content = 'Metin...'; width = 200; height = 40; }
+        else if (type === 'image') { width = 200; height = 200; content = ''; }
+        else if (type === 'box') { width = 150; height = 150; styles.borderWidth = 2; }
+
+        if (preFilledContent) {
+            content = JSON.parse(JSON.stringify(preFilledContent));
+            if (type === 'multiple_choice') { width = 700; height = 150; }
+            if (type === 'open_ended') { width = 700; height = 120; }
+            if (type === 'fill_in_blanks') { width = 700; height = 60; }
+            if (type === 'true_false') { width = 700; height = 50; }
+        }
+
+
+        x = x - (width / 2);
+        y = y - (height / 2);
+
+
+        const paper = document.getElementById('paper');
+        if (paper) {
+            const paperW = paper.offsetWidth;
+            const paperH = paper.offsetHeight;
+
+
+            if (x < 0) x = 0;
+            if (y < 0) y = 0;
+
+
+            if (x + width > paperW) x = paperW - width;
+            if (y + height > paperH) y = paperH - height;
+        }
+
+
+        this.elements.push({
+            id: Date.now() + Math.random(),
+            page: this.activePage,
+            type: type,
+            content: content,
+            x: x,
+            y: y,
+            w: width,
+            h: height,
+            styles: styles
+        });
+
+
+        const newItem = this.elements[this.elements.length - 1];
+        this.selectedId = newItem.id;
+    },
+
+
+    addAiRequest() {
+
+        this.aiRequests.push({ type: 'multiple_choice', count: 1, difficulty: 'medium', option_count: 4 });
+    },
+
+    removeAiRequest(index) { this.aiRequests.splice(index, 1); },
+
+
+    generateBatchAi() {
+        this.aiLoading = true;
+        setTimeout(() => {
+            const sourceSummary = (this.aiPrompt ? `Konu: "${this.aiPrompt}". ` : '') + (this.aiContext ? `Metin Verildi. ` : '') + (this.aiFile ? `Dosya: ${this.aiFile.name}` : '');
+            this.aiRequests.forEach(req => {
+                let generatedQuestions = [];
+                let typeName = '';
+                if (req.type === 'multiple_choice') typeName = 'Çoktan Seçmeli';
+                else if (req.type === 'open_ended') typeName = 'Klasik';
+                else if (req.type === 'true_false') typeName = 'Doğru/Yanlış';
+                else if (req.type === 'fill_in_blanks') typeName = 'Boşluk Doldurma';
+
+                let difficultyLabel = req.difficulty === 'easy' ? 'Kolay' : (req.difficulty === 'hard' ? 'Zor' : 'Orta');
+
+                for (let i = 0; i < req.count; i++) {
+                    let mockContent = {};
+                    let points = req.difficulty === 'hard' ? '20' : '10';
+
+                    if (req.type === 'multiple_choice') {
+                        let options = [];
+                        for (let o = 0; o < (req.option_count || 4); o++) options.push(`Seçenek ${String.fromCharCode(65 + o)}`);
+                        mockContent = { question: `(AI) ${sourceSummary} hakkında soru #${i + 1}?`, point: points, options: options };
+                    } else {
+                        mockContent = { question: `(AI) ${sourceSummary} sorusu #${i + 1}?`, point: points };
+                    }
+                    generatedQuestions.push(mockContent);
+                }
+
+                const existingGroup = this.aiPoolGroups.find(g => g.type === req.type && g.difficulty === req.difficulty);
+                if (existingGroup) {
+                    existingGroup.count += parseInt(req.count);
+                    existingGroup.questions = existingGroup.questions.concat(generatedQuestions);
+                } else {
+                    this.aiPoolGroups.push({
+                        id: Date.now() + Math.random(),
+                        type: req.type,
+                        typeName: typeName,
+                        difficulty: req.difficulty,
+                        difficultyLabel: difficultyLabel,
+                        count: parseInt(req.count),
+                        questions: generatedQuestions
+                    });
+                }
+            });
+            this.aiLoading = false;
+            this.aiBatchModalOpen = false;
+        }, 1500);
+    },
+
+
+    openAiModal(item) { this.activeAiItem = item; this.aiModalOpen = true; this.aiPrompt = ''; this.aiContext = ''; this.aiFile = null; },
+    generateAiContent() {
+        if (!this.activeAiItem) return;
+        this.aiLoading = true;
+        setTimeout(() => {
+            const sourceSummary = (this.aiPrompt ? this.aiPrompt : '') + (this.aiContext ? ' + Metin' : '') + (this.aiFile ? ' + Dosya' : '');
+            const type = this.activeAiItem.type;
+            let newContent = {};
+            if (type === 'multiple_choice') newContent = { question: `(AI) ${sourceSummary} sorusu?`, point: '15', options: ['A', 'B', 'C', 'D'] };
+            else newContent = { question: `(AI) ${sourceSummary} sorusu?`, point: '10' };
+            if (Object.keys(newContent).length > 0) this.activeAiItem.content = newContent;
+            this.aiLoading = false;
+            this.aiModalOpen = false;
+        }, 1000);
+    },
+
+
+    setMode(mode) { this.cursorMode = mode; },
+    setFile(event) { this.aiFile = event.target.files[0]; },
+    addPage() { this.totalPages++; this.activePage = this.totalPages; this.selectedId = null; },
+    setPage(pageNum) { this.activePage = pageNum; this.selectedId = null; },
+    deletePage() {
+        if (this.totalPages > 1) {
+            if (confirm('Sayfayı silmek istediğinize emin misiniz?')) {
+                this.elements = this.elements.filter(el => el.page !== this.activePage);
+                this.elements.forEach(el => { if (el.page > this.activePage) el.page--; });
+                this.totalPages--;
+                this.activePage = Math.max(1, this.activePage - 1);
+            }
+        }
+    },
+    select(id) { if (this.cursorMode === 'select') this.selectedId = id; },
+    deselect() { this.selectedId = null; },
+    remove(id) { this.elements = this.elements.filter(el => el.id !== id); this.selectedId = null; },
+    uploadImage(event, item) { const file = event.target.files[0]; if (file) item.content = URL.createObjectURL(file); },
+    saveToConsole() { console.log(JSON.stringify(this.elements)); alert('JSON Hazır!'); }
+}));
 
 Alpine.start();

@@ -2,7 +2,7 @@
 
 @php
   
-    $imgUrl = $quiz->img_url ? asset('storage/' . $quiz->img_url) : 'https://picsum.photos/seed/'.$quiz->id.'/400/200';
+    $imgUrl = $quiz->img_url ? asset('storage/' . $quiz->img_url) : null ;
     $userAvatar = $quiz->user->avatar_url ? asset('storage/' . $quiz->user->avatar_url) : null;
     $solvedCount = $quiz->results->count();
 @endphp
@@ -10,10 +10,16 @@
 <div class="group relative flex flex-col bg-white rounded-2xl shadow-lg overflow-hidden h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
    
     <div class="relative h-40 overflow-hidden">
-        <img src="{{ $imgUrl }}" alt="{{ $quiz->title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+        @if($quiz->img_url != null)
+            <img src="{{ $imgUrl }}" alt="{{ $quiz->title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+        @else
+            <div class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex flex-col items-center justify-center transition-transform duration-500 group-hover:scale-110">
+                <i class="fa-solid fa-book-open text-4xl text-gray-600 mb-2 group-hover:text-gray-500 transition-colors"></i>  
+            </div>
+        @endif
         
         <div class="absolute top-2 right-2">
-            @switch($quiz->difficulty)
+            @switch($quiz->difficulty->value)
                 @case('easy') <span class="bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">KOLAY</span> @break
                 @case('medium') <span class="bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">ORTA</span> @break
                 @case('hard') <span class="bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">ZOR</span> @break
@@ -50,7 +56,7 @@
             <h3 class="font-bold text-gray-900 text-lg leading-tight mb-1 line-clamp-2 h-14" title="{{ $quiz->title }}">
                 {{ $quiz->title }}
             </h3>
-            <p class="text-xs text-blue-600 font-semibold uppercase tracking-wide mb-3">{{ $quiz->subject }}</p>
+            <p class="text-md text-indigo-900 font-semibold uppercase tracking-wide mb-3">{{ $quiz->subject }}</p>
 
            
             <div class="flex items-center space-x-4 text-xs text-gray-500 font-mono mb-4 border-b border-gray-100 pb-2">

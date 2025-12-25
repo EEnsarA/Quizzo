@@ -125,10 +125,10 @@
                     <table class="w-full text-sm font-mono text-black">
                         <tr>
                             <td class="pb-2 w-1/2"><strong>Adı Soyadı:</strong> ............................................</td>
-                            <td class="pb-2 w-1/2 text-right"><strong>Numara:</strong> ...........................</td>
+                            <td class="pb-2 w-1/2 text-right"><strong>Numara:</strong> ...................</td>
                         </tr>
                         <tr>
-                            <td><strong>İmza:</strong> ........................................................</td>
+                            <td><strong>İmza:</strong> ......................................</td>
                             <td class="text-right"><strong>Puan:</strong> ......... / 100</td>
                         </tr>
                     </table>
