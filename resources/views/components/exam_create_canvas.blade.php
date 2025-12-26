@@ -17,8 +17,13 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <button @click="saveToConsole()" class="px-3 py-1.5 bg-[#3e3e42] hover:bg-[#4e4e52] text-white rounded text-xs font-medium transition-colors">Kaydet</button>
-                <button class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2"><i class="fa-solid fa-download"></i> PDF</button>
+                @auth
+                    <button @click="saveExam()" class="px-3 py-1.5 bg-[#3e3e42] hover:bg-[#4e4e52] text-white rounded text-xs font-medium transition-colors">Kaydet</button>
+                    <button class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2"><i class="fa-solid fa-download"></i> PDF</button>
+                @else
+                    <button @click="$dispatch('notify', { message: 'AI özelliklerini kullanmak için lütfen giriş yapın!', type: 'warning' })" class="px-3 py-1.5 bg-[#3e3e42] hover:bg-[#4e4e52] text-white rounded text-xs font-medium transition-colors">Kaydet</button>
+                    <button @click="$dispatch('notify', { message: 'AI özelliklerini kullanmak için lütfen giriş yapın!', type: 'warning' })" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2"><i class="fa-solid fa-download"></i> PDF</button>
+                @endauth
             </div>
         </header>
         

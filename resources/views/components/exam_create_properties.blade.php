@@ -40,8 +40,13 @@
                         <div>
                             <label class="text-[10px] text-gray-500 uppercase font-bold">Arka Plan</label>
                             <div class="flex items-center gap-2">
-                                <input type="color" x-model="selectedItem.styles.backgroundColor" class="w-8 h-8 rounded cursor-pointer bg-transparent border-none">
-                                <button @click="selectedItem.styles.backgroundColor = 'transparent'" class="text-xs text-red-400 hover:underline cursor-pointer">Şeffaf</button>
+                                    {{-- Inputa :value ile kontrol koyduk. Eğer transparent ise #ffffff göster yoksa rengi göster --}}
+                                    <input type="color" 
+                                        :value="selectedItem.styles.backgroundColor === 'transparent' ? '#ffffff' : selectedItem.styles.backgroundColor" 
+                                        @input="selectedItem.styles.backgroundColor = $event.target.value"
+                                        class="w-8 h-8 rounded cursor-pointer bg-transparent border-none">
+                                    
+                                    <button @click="selectedItem.styles.backgroundColor = 'transparent'" class="text-xs text-red-400 hover:underline cursor-pointer">Şeffaf</button>
                             </div>
                         </div>
                         <div>

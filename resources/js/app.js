@@ -334,7 +334,8 @@ Alpine.data("profileAvatar", (props = {}) => ({
 
 
 //? Exam Canvas
-Alpine.data("examCanvas", () => ({
+Alpine.data("examCanvas", (props = {}) => ({
+    token: props.token || '',
     elements: [],
     selectedId: null,
     draggingType: null,
@@ -384,6 +385,15 @@ Alpine.data("examCanvas", () => ({
                 this.addItem('student_info', 400, 200);
             }
         }, 300);
+
+        window.addEventListener('beforeunload', (e) => {
+            // Eğer eleman varsa uyarı göster
+            if (this.elements.length > 0) {
+                e.preventDefault();
+                e.returnValue = ''; // Tarayıcı standart uyarısını tetikler
+            }
+        });
+
     },
 
 
@@ -634,7 +644,49 @@ Alpine.data("examCanvas", () => ({
     deselect() { this.selectedId = null; },
     remove(id) { this.elements = this.elements.filter(el => el.id !== id); this.selectedId = null; },
     uploadImage(event, item) { const file = event.target.files[0]; if (file) item.content = URL.createObjectURL(file); },
-    saveToConsole() { console.log(JSON.stringify(this.elements)); alert('JSON Hazır!'); }
+    async saveExam() {
+        const titleInput = document.querySelector('input[type="text"]');
+        const title = titleInput ? titleInput.value : "İsimsiz Sınav";
+
+        this.aiLoading = true;
+
+        try {
+            const response = await axios.post('/exam/save',
+                {
+                    title: title,
+                    elements: this.elements,
+                    page_count: this.totalPages
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.token
+                    }
+                }
+            );
+
+            if (response.data.success) {
+                window.dispatchEvent(new CustomEvent('notify', {
+                    detail: { message: 'Sınav başarıyla kaydedildi! 💾', type: 'success' }
+                }));
+            }
+
+        } catch (error) {
+            console.error("Kayıt Hatası:", error);
+
+            let errorMsg = 'Kaydetme sırasında bir hata oluştu!';
+            if (error.response && error.response.status === 419) {
+                errorMsg = 'Oturum süreniz dolmuş, lütfen sayfayı yenileyin.';
+            }
+
+            window.dispatchEvent(new CustomEvent('notify', {
+                detail: { message: errorMsg, type: 'error' }
+            }));
+        } finally {
+            this.aiLoading = false;
+        }
+    },
+    saveToConsole() { console.log(JSON.stringify(this.elements)); window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Kayıt Başarılı!', type: 'success' } }));; }
 }));
 
 Alpine.start();

@@ -206,12 +206,23 @@
                             class="flex-1 py-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-circle-check"></i> Quizi Oluştur
                     </button>
-                    
+                    @auth
                     <button type="submit" 
                             formaction="{{ route('quiz.ai_generate') }}" formmethod="POST"
                             class="sm:w-64 py-4 bg-gray-700 hover:bg-gray-600 text-blue-400 border border-blue-900/30 font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 group">
                         <i class="fa-solid fa-wand-magic-sparkles group-hover:animate-pulse"></i> AI ile Üret
                     </button>
+
+                    @else
+
+                     <button 
+                        type="button"
+                        @click="$dispatch('notify', { message: 'AI özelliklerini kullanmak için lütfen giriş yapın!', type: 'error' })"
+                        class="sm:w-64 py-4 bg-gray-700 hover:bg-gray-600 text-blue-400 border border-blue-900/30 font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 group">
+                        <i class="fa-solid fa-wand-magic-sparkles group-hover:animate-pulse"></i> AI ile Üret
+                    </button>
+
+                    @endauth
                 </div>
 
             </form>
