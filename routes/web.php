@@ -33,7 +33,10 @@ Route::get("/quiz/result/{result}", [QuizController::class, "show_result"])->nam
 
 Route::get("/exam_create", [ExamController::class, "index"])->name("exam.create");
 Route::get("exam_creator/test", [ExamController::class, "test"])->name("test");
-
+Route::get('/exam/edit/{id}', [ExamController::class, 'edit'])->name('exam.edit');
+Route::post('/exam/update/{id}', [ExamController::class, 'update'])->name('exam.update');
+Route::delete('/exam/delete/{id}', [ExamController::class, 'destroy'])->name('exam.delete');
+Route::post('/exam/upload-image', [ExamController::class, 'uploadImage'])->name('exam.upload.image');
 // ====================================================
 // 2. KORUMALI ROTALAR (Sadece Giriş Yapmış Üyeler)
 // ====================================================

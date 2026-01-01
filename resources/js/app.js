@@ -336,7 +336,11 @@ Alpine.data("profileAvatar", (props = {}) => ({
 //? Exam Canvas
 Alpine.data("examCanvas", (props = {}) => ({
     token: props.token || '',
-    elements: [],
+
+    elements: props.initialElements || [],
+    examTitle: props.examTitle || 'Yeni Sınav Kağıdı',
+    examId: props.examId || null,
+
     selectedId: null,
     draggingType: null,
     draggingPayload: null,
@@ -377,14 +381,17 @@ Alpine.data("examCanvas", (props = {}) => ({
 
         this.elements = this.elements.filter(el => el.id && el.page);
 
-        this.setupInteract();
-
-        setTimeout(() => {
-            if (this.elements.length === 0) {
+        if (this.elements.length > 0) {
+            const maxPage = Math.max(...this.elements.map(el => el.page || 1));
+            this.pages = Array.from({ length: maxPage }, (_, i) => i + 1);
+            this.totalPages = maxPage;
+        }
+        else {
+            setTimeout(() => {
                 this.addItem('header_block', 400, 80);
                 this.addItem('student_info', 400, 200);
-            }
-        }, 300);
+            }, 300);
+        }
 
         window.addEventListener('beforeunload', (e) => {
             // Eğer eleman varsa uyarı göster
@@ -393,7 +400,9 @@ Alpine.data("examCanvas", (props = {}) => ({
                 e.returnValue = ''; // Tarayıcı standart uyarısını tetikler
             }
         });
-
+        this.$nextTick(() => {
+            this.setupInteract();
+        });
     },
 
 
@@ -486,53 +495,153 @@ Alpine.data("examCanvas", (props = {}) => ({
 
     addItem(type, x = 50, y = 50, preFilledContent = null) {
         let width = 200, height = 50, content = {};
-        let styles = { fontSize: 14, color: '#000000', fontWeight: 'normal', textAlign: 'left', zIndex: 1, borderWidth: 0, borderColor: '#000000', backgroundColor: 'transparent', borderRadius: 0 };
 
+        // Varsayılan Stiller
+        let styles = {
+            fontSize: 14,
+            color: '#000000',
+            fontWeight: 'normal',
+            textAlign: 'left',
+            zIndex: 1,
+            borderWidth: 0,
+            borderColor: '#000000',
+            backgroundColor: 'transparent',
+            borderRadius: 0
+        };
 
-        if (type === 'header_block') { width = 600; height = 100; content = { title: 'ATATÜRK ÜNİVERSİTESİ', faculty: 'Mühendislik Fakültesi', term: '2025-2026 Güz Dönemi' }; styles.textAlign = 'center'; styles.fontWeight = 'bold'; }
-        else if (type === 'student_info') {
-            width = 700; height = 80; styles.borderWidth = 1; styles.borderColor = '#ccc'; styles.backgroundColor = '#f9fafb'; styles.borderRadius = 8;
-            content = { label1: 'Adı Soyadı:', val1: '.......................................', label2: 'Numara:', val2: '.......................', label3: 'İmza:', val3: '.................................', label4: 'Puan:', val4: '....... / 100' };
+        // --- TİPE GÖRE AYARLAR ---
+
+        if (type === 'header_block') {
+            width = 600;
+            height = 100;
+            content = {
+                title: 'ATATÜRK ÜNİVERSİTESİ',
+                faculty: 'Mühendislik Fakültesi',
+                term: '2025-2026 Güz Dönemi'
+            };
+            styles.textAlign = 'center';
+            styles.fontWeight = 'bold';
         }
-        else if (type === 'multiple_choice') { width = 700; height = 150; content = { question: 'Soru metnini buraya giriniz...', point: '10', options: ['A) ...', 'B) ...', 'C) ...', 'D) ...'] }; }
-        else if (type === 'open_ended') { width = 700; height = 120; content = { question: 'Klasik soru metnini buraya giriniz...', point: '20' }; }
-        else if (type === 'fill_in_blanks') { width = 700; height = 60; content = { question: 'Boşluk doldurma sorusu...', point: '5' }; }
-        else if (type === 'true_false') { width = 700; height = 50; content = { question: 'Doğru yanlış sorusu...', point: '5', format: '( D / Y )' }; }
-        else if (type === 'custom_question') { width = 400; height = 200; styles.borderWidth = 1; styles.borderColor = '#e5e7eb'; content = { text: 'Özel Soru Alanı' }; }
-        else if (type === 'heading') { content = 'Ana Başlık'; width = 300; height = 50; styles.fontSize = 24; styles.fontWeight = 'bold'; }
-        else if (type === 'sub_heading') { content = 'Alt Başlık'; width = 250; height = 40; styles.fontSize = 18; styles.fontWeight = 'bold'; styles.color = '#555'; }
-        else if (type === 'text') { content = 'Metin...'; width = 200; height = 40; }
-        else if (type === 'image') { width = 200; height = 200; content = ''; }
-        else if (type === 'box') { width = 150; height = 150; styles.borderWidth = 2; }
+        else if (type === 'student_info') {
+            width = 700;
+            height = 80;
+            // İstersen border'ı tamamen kaldırabilirsin, çünkü içeride tablo yapısı var
+            styles.borderWidth = 0;
+            styles.backgroundColor = 'transparent';
 
+            content = {
+                // Val değerlerini BOŞ bıraktık, böylece noktalar gitti.
+                label1: 'Adı Soyadı:', val1: '',
+                label2: 'Numara:', val2: '',
+                label3: 'Sınıfı:', val3: '',
+                label4: 'Puan:', val4: ''
+            };
+        }
+        else if (type === 'multiple_choice') {
+            width = 700;
+            height = 180;
+            content = {
+                number: '1.', // <--- YENİ: Soru Numarası
+                question: 'Soru metnini buraya giriniz...',
+                point: '10',
+                // A), B) yazılarını kaldırdık, HTML otomatik koyacak
+                options: ['Seçenek A metni', 'Seçenek B metni', 'Seçenek C metni', 'Seçenek D metni', 'Seçenek E metni']
+            };
+        }
+        else if (type === 'open_ended') {
+            width = 700;
+            height = 120;
+            content = {
+                number: '2.',
+                question: 'Klasik soru metnini buraya giriniz...',
+                point: '20'
+            };
+        }
+        else if (type === 'fill_in_blanks') {
+            width = 700;
+            height = 60;
+            content = {
+                number: '3.',
+                question: 'Boşluk doldurma sorusu...',
+                point: '5'
+            };
+        }
+        else if (type === 'true_false') {
+            width = 700;
+            height = 50;
+            content = {
+                number: '4.',
+                question: 'Doğru yanlış sorusu...',
+                point: '5',
+                format: 'D / Y' // <--- GÜNCELLENDİ
+            };
+        }
+        else if (type === 'custom_question') {
+            width = 400;
+            height = 200;
+            styles.borderWidth = 1;
+            styles.borderColor = '#e5e7eb';
+            content = { text: 'Özel Soru Alanı' };
+        }
+        else if (type === 'heading') {
+            content = 'Ana Başlık';
+            width = 300;
+            height = 50;
+            styles.fontSize = 24;
+            styles.fontWeight = 'bold';
+        }
+        else if (type === 'sub_heading') {
+            content = 'Alt Başlık';
+            width = 250;
+            height = 40;
+            styles.fontSize = 18;
+            styles.fontWeight = 'bold';
+            styles.color = '#555';
+        }
+        else if (type === 'text') {
+            content = 'Metin...';
+            width = 200;
+            height = 40;
+        }
+        else if (type === 'image') {
+            width = 200;
+            height = 200;
+            content = '';
+        }
+        else if (type === 'box') {
+            width = 150;
+            height = 150;
+            styles.borderWidth = 2;
+        }
+
+        // --- PRE-FILLED İÇERİK VARSA YÜKLE ---
         if (preFilledContent) {
             content = JSON.parse(JSON.stringify(preFilledContent));
+            // Varsayılan boyutları koru (veya kaydedilen boyutu kullanmak istersen burayı silebilirsin)
             if (type === 'multiple_choice') { width = 700; height = 150; }
             if (type === 'open_ended') { width = 700; height = 120; }
             if (type === 'fill_in_blanks') { width = 700; height = 60; }
             if (type === 'true_false') { width = 700; height = 50; }
         }
 
-
+        // --- MERKEZLEME HESABI ---
         x = x - (width / 2);
         y = y - (height / 2);
 
-
+        // --- KAĞIT DIŞINA TAŞMAYI ENGELLE ---
         const paper = document.getElementById('paper');
         if (paper) {
             const paperW = paper.offsetWidth;
             const paperH = paper.offsetHeight;
 
-
             if (x < 0) x = 0;
             if (y < 0) y = 0;
-
 
             if (x + width > paperW) x = paperW - width;
             if (y + height > paperH) y = paperH - height;
         }
 
-
+        // --- DİZİYE EKLE ---
         this.elements.push({
             id: Date.now() + Math.random(),
             page: this.activePage,
@@ -545,7 +654,7 @@ Alpine.data("examCanvas", (props = {}) => ({
             styles: styles
         });
 
-
+        // --- YENİ EKLENENİ SEÇ ---
         const newItem = this.elements[this.elements.length - 1];
         this.selectedId = newItem.id;
     },
@@ -643,12 +752,53 @@ Alpine.data("examCanvas", (props = {}) => ({
     select(id) { if (this.cursorMode === 'select') this.selectedId = id; },
     deselect() { this.selectedId = null; },
     remove(id) { this.elements = this.elements.filter(el => el.id !== id); this.selectedId = null; },
-    uploadImage(event, item) { const file = event.target.files[0]; if (file) item.content = URL.createObjectURL(file); },
-    async saveExam() {
-        const titleInput = document.querySelector('input[type="text"]');
-        const title = titleInput ? titleInput.value : "İsimsiz Sınav";
 
-        this.aiLoading = true;
+    async uploadImage(event, item) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Kullanıcıya işlem yapıldığını gösterelim
+        window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const response = await axios.post('/exam/upload-image', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRF-TOKEN': this.token
+                }
+            });
+
+            if (response.data.success) {
+
+                item.content = response.data.url;
+
+            }
+
+        } catch (error) {
+            console.error("Yükleme Hatası:", error);
+            window.dispatchEvent(new CustomEvent('notify', {
+                detail: { message: 'Resim yüklenirken hata oluştu', type: 'error' }
+            }));
+        } finally {
+            // İşlem bitince input'u sıfırla (aynı resmi tekrar seçebilmek için)
+            event.target.value = '';
+
+            // Loading'i kapat
+            window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
+        }
+    },
+
+    async saveExam() {
+
+        if (!confirm('Sınav kağıdını kaydetmek istediğine emin misin?')) return;
+        const title = this.examTitle;
+
+        window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
+
+        const url = this.examId ? `/exam/update/${this.examId}` : '/exam/save';
 
         try {
             const response = await axios.post('/exam/save',
@@ -666,6 +816,9 @@ Alpine.data("examCanvas", (props = {}) => ({
             );
 
             if (response.data.success) {
+                setTimeout(() => {
+                    window.location.href = "/library";
+                }, 1000);
                 window.dispatchEvent(new CustomEvent('notify', {
                     detail: { message: 'Sınav başarıyla kaydedildi! 💾', type: 'success' }
                 }));
@@ -682,6 +835,7 @@ Alpine.data("examCanvas", (props = {}) => ({
             window.dispatchEvent(new CustomEvent('notify', {
                 detail: { message: errorMsg, type: 'error' }
             }));
+            window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
         } finally {
             this.aiLoading = false;
         }

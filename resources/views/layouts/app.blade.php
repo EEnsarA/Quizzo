@@ -37,6 +37,7 @@
             <x-footer />
         </div>
     </div>
+    <x-loading />
     <x-alert />
 </body>
 

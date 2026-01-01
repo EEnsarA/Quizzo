@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ExamPaper;
 use App\Models\Quiz;
 use App\Models\QuizResult;
 use App\Models\User;
@@ -33,7 +34,11 @@ class LibraryController extends Controller
             return $quiz->user_id !== $user->id;
         });
 
-        return view("pages.library", compact("myQuizzos", "libraryQuizzos"));
+        // exams
+        $examPapers = ExamPaper::where('user_id', $user->id)->latest()->get();
+
+
+        return view("pages.library", compact("myQuizzos", "libraryQuizzos", "examPapers"));
     }
 
     public function add_library(Quiz $quiz)
