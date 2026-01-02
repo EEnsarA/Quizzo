@@ -73,23 +73,32 @@ class UserController extends Controller
 
     public function profile()
     {
-        if (!Auth::check())  return redirect()->route("home");
+
+        if (!Auth::check()) return redirect()->route("home");
 
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
+        // 1. Quizleri Çek
         $myQuizzos = $user->quizzes()
             ->withCount('results')
             ->latest()
-            ->paginate(12);
+            ->limit(20) // Profilde çok şişmesin diye limit koyabiliriz veya paginate
+            ->get();
+
+        $myExams = $user->examPapers()
+            ->latest()
+            ->limit(20)
+            ->get();
 
         $stats = [
-            'created_count' => $user->quizzes()->count(),      // Toplam oluşturduğu quiz sayısı
-            'solved_count'  => $user->results()->distinct('quiz_id')->count(), // Çözdüğü *farklı* quiz sayısı
-            'rank'          => $user->rank ?? '#24'           // Varsa rank, yoksa varsayılan
+            'created_count' => $user->quizzes()->count(),
+            'solved_count'  => $user->results()->distinct('quiz_id')->count(),
+            'rank'          => $user->rank ?? '#24'
         ];
 
-        return view("pages.user_profile", compact("myQuizzos", "user"));
+        // myExams'i de gönderiyoruz
+        return view("pages.user_profile", compact("myQuizzos", "myExams", "user", "stats"));
     }
 
 

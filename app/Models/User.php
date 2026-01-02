@@ -66,4 +66,9 @@ class User extends Authenticatable
 
         return $this->hasMany(QuizResult::class)->whereNotIn("time_spent", [0]);
     }
+
+    public function examPapers()
+    {
+        return $this->hasMany(ExamPaper::class);
+    }
 }

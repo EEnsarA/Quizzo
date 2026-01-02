@@ -1,9 +1,9 @@
 {{-- 2. CANVAS --}}
-<main class="flex-1 flex flex-col min-w-0 bg-[#1e1e1e]">
+<main class=" absolute inset-0 flex-1 flex flex-col min-w-0 bg-[#1e1e1e]" @mousedown="if($event.target === $el) deselect()">
     
     {{-- TOOLBAR / MODE SEÇİCİ --}}
-    <header class="h-14 bg-[#252526] border-b border-[#3e3e42] flex justify-between items-center px-4 shadow-md z-10">
-        <div class="flex items-center gap-2">
+    <header class="h-14 bg-[#252526] border-b border-[#3e3e42] flex  items-center px-4 shadow-md z-10">
+        <div class="absolute left-4 flex items-center gap-2">
             {{-- SINAV ADI INPUTU (DÜZELTİLDİ) --}}
             <input type="text" 
                    x-model="examTitle" 
@@ -12,14 +12,28 @@
         </div>
 
         {{-- İmleç Modları --}}
-        <div class="flex bg-[#1e1e1e] p-1 rounded-lg border border-[#3e3e42]">
-            <button @click="setMode('select')" :class="cursorMode === 'select' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-[#333]'" class="p-2 rounded transition" title="Seç / Taşı"><i class="fa-solid fa-arrow-pointer"></i></button>
-            <button @click="setMode('draw')" :class="cursorMode === 'draw' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-[#333]'" class="p-2 rounded transition" title="Kalem"><i class="fa-solid fa-pencil"></i></button>
-            <button @click="setMode('shape')" :class="cursorMode === 'shape' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-[#333]'" class="p-2 rounded transition" title="Şekil"><i class="fa-regular fa-square"></i></button>
-            <button @click="setMode('text')" :class="cursorMode === 'text' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-[#333]'" class="p-2 rounded transition" title="Yazı"><i class="fa-solid fa-font"></i></button>
+        <div class="absolute transform -translate-x-1/2 flex bg-[#1e1e1e] p-1 rounded-lg border border-[#3e3e42] gap-1 transition-all duration-300 ease-in-out z-20"
+            :class="selectedId ? 'left-[40%]' : 'left-1/2'">
+                
+                {{-- SEÇİM MODU --}}
+                <button @click="setMode('select')" :class="cursorMode === 'select' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-[#333]'" class="p-2 rounded transition" title="Seç ve Düzenle">
+                    <i class="fa-solid fa-arrow-pointer"></i>
+                </button>
+
+                {{-- TAŞIMA MODU --}}
+                <button @click="setMode('move')" :class="cursorMode === 'move' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-[#333]'" class="p-2 rounded transition" title="Sadece Taşı">
+                    <i class="fa-solid fa-up-down-left-right"></i>
+                </button>
+
+                <div class="w-px h-6 bg-gray-600 mx-1 self-center"></div>
+
+                {{-- DİĞER ARAÇLAR --}}
+                <button @click="setMode('draw')" :class="cursorMode === 'draw' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-[#333]'" class="p-2 rounded transition" title="Kalem"><i class="fa-solid fa-pencil"></i></button>
+                <button @click="setMode('shape')" :class="cursorMode === 'shape' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-[#333]'" class="p-2 rounded transition" title="Şekil"><i class="fa-regular fa-square"></i></button>
+                <button @click="setMode('text')" :class="cursorMode === 'text' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-[#333]'" class="p-2 rounded transition" title="Yazı"><i class="fa-solid fa-font"></i></button>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 absolute top-3 transition-all duration-300 ease-in-out z-[100]" :style="selectedItem ? 'right: 19rem;' : 'right: 1rem;'">
             @auth
                 <button @click="saveExam()" class="px-3 py-1.5 bg-[#3e3e42] hover:bg-[#4e4e52] text-white rounded text-xs font-medium transition-colors">Kaydet</button>
                 <button class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2"><i class="fa-solid fa-download"></i> PDF</button>
@@ -44,9 +58,13 @@
     <div class="flex-1 overflow-y-auto p-8 md:p-12 flex justify-center bg-[#1e1e1e] relative cursor-crosshair">
         
         <div id="paper" 
-             class="bg-white relative shadow-[0_0_50px_rgba(0,0,0,0.5)] origin-top"
+             class="bg-white relative shadow-[0_0_50px_rgba(0,0,0,0.5)] origin-top transition-all duration-300 ease-in-out"
              style="width: 210mm; min-height: 297mm;"
-             :class="cursorMode === 'select' ? 'cursor-default' : 'cursor-crosshair'"
+             {{-- 1. CURSOR AYARI --}}
+            :class="[
+                        cursorMode === 'select' ? 'cursor-default' : 'cursor-crosshair',
+                        selectedId ? '-translate-x-[10rem]' : 'translate-x-0'
+            ]"
              @click.self="deselect()"
              @dragover.prevent
              @drop="handleDrop($event)">
@@ -70,9 +88,9 @@
                     {{-- 1. BAŞLIK BLOĞU --}}
                     <template x-if="item.type === 'header_block'">
                         <div class="w-full h-full flex flex-col items-center justify-center text-black leading-tight">
-                            <input type="text" x-model="item.content.title" class="w-full text-center bg-transparent border-none focus:ring-0 p-0 text-xl font-bold font-serif uppercase placeholder-gray-300" placeholder="ÜNİVERSİTE ADI">
-                            <input type="text" x-model="item.content.faculty" class="w-full text-center bg-transparent border-none focus:ring-0 p-0 text-lg font-semibold placeholder-gray-300" placeholder="Fakülte / Bölüm">
-                            <input type="text" x-model="item.content.term" class="w-full text-center bg-transparent border-none focus:ring-0 p-0 text-base mt-1 placeholder-gray-300" placeholder="Eğitim Yılı">
+                            <input type="text" x-model="item.content.title" class="w-full text-center bg-transparent border-none focus:ring-0 p-0 text-xl font-bold font-serif uppercase placeholder-gray-300" :class="{'pointer-events-none': cursorMode === 'move'}" placeholder="ÜNİVERSİTE ADI">
+                            <input type="text" x-model="item.content.faculty" class="w-full text-center bg-transparent border-none focus:ring-0 p-0 text-lg font-semibold placeholder-gray-300" :class="{'pointer-events-none': cursorMode === 'move'}" placeholder="Fakülte / Bölüm">
+                            <input type="text" x-model="item.content.term" class="w-full text-center bg-transparent border-none focus:ring-0 p-0 text-base mt-1 placeholder-gray-300" :class="{'pointer-events-none': cursorMode === 'move'}" placeholder="Eğitim Yılı">
                         </div>
                     </template>
 
@@ -86,34 +104,34 @@
                                         {{-- SOL SÜTUN --}}
                                         <td class="align-middle w-1/2 pr-2 border-r border-transparent">
                                             <div class="flex items-center w-full gap-1">
-                                                <input type="text" x-model="item.content.label1" class="font-bold bg-transparent border-none p-0 w-1/3 text-sm focus:ring-0 leading-none h-6">
-                                                <input type="text" x-model="item.content.val1" class="flex-1 min-w-0 bg-transparent border-b border-gray-400 border-dashed p-0 text-sm focus:ring-0 leading-none h-6">
+                                                <input type="text" x-model="item.content.label1" class="font-bold bg-transparent border-none p-0 w-1/3 text-sm focus:ring-0 leading-none h-6" :class="{'pointer-events-none': cursorMode === 'move'}" >
+                                                <input type="text" x-model="item.content.val1" class="flex-1 min-w-0 bg-transparent border-b border-gray-400 border-dashed p-0 text-sm focus:ring-0 leading-none h-6" :class="{'pointer-events-none': cursorMode === 'move'}" >
                                             </div>
                                         </td>
                                         {{-- SAĞ SÜTUN --}}
                                         <td class="align-middle w-1/2 pl-2">
                                             <div class="flex items-center justify-end w-full gap-1">
                                                 {{-- Label sağa yaslı kalabilir (Estetik için) --}}
-                                                <input type="text" x-model="item.content.label2" class="font-bold bg-transparent border-none p-0 w-1/3 text-sm text-right focus:ring-0 leading-none h-6">
+                                                <input type="text" x-model="item.content.label2" class="font-bold bg-transparent border-none p-0 w-1/3 text-sm text-right focus:ring-0 leading-none h-6" :class="{'pointer-events-none': cursorMode === 'move'}" >
                                                 
                                                 {{-- DÜZELTME: Buradaki 'text-right' silindi, artık sola yaslı yazar --}}
-                                                <input type="text" x-model="item.content.val2" class="flex-1 min-w-0 bg-transparent border-b border-gray-400 border-dashed p-0 text-sm text-left focus:ring-0 leading-none h-6">
+                                                <input type="text" x-model="item.content.val2" class="flex-1 min-w-0 bg-transparent border-b border-gray-400 border-dashed p-0 text-sm text-left focus:ring-0 leading-none h-6" :class="{'pointer-events-none': cursorMode === 'move'}" >
                                             </div>
                                         </td>
                                     </tr>
                                     <tr class="h-1/2">
                                         <td class="align-middle w-1/2 pr-2 border-r border-transparent">
                                             <div class="flex items-center w-full gap-1">
-                                                <input type="text" x-model="item.content.label3" class="font-bold bg-transparent border-none p-0 w-1/3 text-sm focus:ring-0 leading-none h-6">
-                                                <input type="text" x-model="item.content.val3" class="flex-1 min-w-0 bg-transparent border-b border-gray-400 border-dashed p-0 text-sm focus:ring-0 leading-none h-6">
+                                                <input type="text" x-model="item.content.label3" class="font-bold bg-transparent border-none p-0 w-1/3 text-sm focus:ring-0 leading-none h-6" :class="{'pointer-events-none': cursorMode === 'move'}">
+                                                <input type="text" x-model="item.content.val3" class="flex-1 min-w-0 bg-transparent border-b border-gray-400 border-dashed p-0 text-sm focus:ring-0 leading-none h-6" :class="{'pointer-events-none': cursorMode === 'move'}">
                                             </div>
                                         </td>
                                         <td class="align-middle w-1/2 pl-2">
                                             <div class="flex items-center justify-end w-full gap-1">
-                                                <input type="text" x-model="item.content.label4" class="font-bold bg-transparent border-none p-0 w-1/3 text-sm text-right focus:ring-0 leading-none h-6">
+                                                <input type="text" x-model="item.content.label4" class="font-bold bg-transparent border-none p-0 w-1/3 text-sm text-right focus:ring-0 leading-none h-6" :class="{'pointer-events-none': cursorMode === 'move'}">
                                                 
                                                 {{-- DÜZELTME: Buradaki 'text-right' silindi --}}
-                                                <input type="text" x-model="item.content.val4" class="flex-1 min-w-0 bg-transparent border-b border-gray-400 border-dashed p-0 text-sm text-left focus:ring-0 leading-none h-6">
+                                                <input type="text" x-model="item.content.val4" class="flex-1 min-w-0 bg-transparent border-b border-gray-400 border-dashed p-0 text-sm text-left focus:ring-0 leading-none h-6" :class="{'pointer-events-none': cursorMode === 'move'}">
                                             </div>
                                         </td>
                                     </tr>
@@ -129,11 +147,12 @@
                                 {{-- SORU NUMARASI (Düzenlenebilir Input) --}}
                                 <input type="text" x-model="item.content.number" class="w-8 font-bold bg-transparent border-none p-0 focus:ring-0 text-right mr-1" placeholder="1.">
                                 
-                                <textarea x-model="item.content.question" class="flex-1 bg-transparent border-none focus:ring-0 p-0 font-bold resize-none h-auto overflow-hidden placeholder-gray-400" rows="1"></textarea>
+                                <textarea x-model="item.content.question" class="flex-1 bg-transparent border-none focus:ring-0 p-0 font-bold resize-none h-auto overflow-hidden placeholder-gray-400"
+                                 :class="{'pointer-events-none': cursorMode === 'move'}" rows="1"></textarea>
                                 
                                 <div class="flex items-start flex-shrink-0">
                                     <span class="text-xs font-bold">(</span>
-                                    <input type="text" x-model="item.content.point" class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0">
+                                    <input type="text" x-model="item.content.point" class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0" :class="{'pointer-events-none': cursorMode === 'move'}">
                                     <span class="text-xs font-bold">p)</span>
                                 </div>
                             </div>
@@ -145,7 +164,8 @@
                                         {{-- YUVARLAK YERİNE HARF (A, B, C, D) --}}
                                         <span class="font-bold text-gray-700" x-text="String.fromCharCode(65 + idx) + ')'"></span>
                                         
-                                        <input type="text" x-model="item.content.options[idx]" class="w-full bg-transparent border-none focus:ring-0 p-0 hover:bg-gray-50 rounded px-1">
+                                        <input type="text" x-model="item.content.options[idx]" class="w-full bg-transparent border-none focus:ring-0 p-0 hover:bg-gray-50 rounded px-1"
+                                        :class="{'pointer-events-none': cursorMode === 'move'}">
                                     </div>
                                 </template>
                             </div>
@@ -158,13 +178,13 @@
                             <div class="flex justify-between items-start mb-2">
                                 <div class="flex gap-1 w-full">
                                     {{-- SORU NUMARASI --}}
-                                    <input type="text" x-model="item.content.number" class="w-8 font-bold bg-transparent border-none p-0 focus:ring-0 text-right mr-1">
+                                    <input type="text" x-model="item.content.number" class="w-8 font-bold bg-transparent border-none p-0 focus:ring-0 text-right mr-1" :class="{'pointer-events-none': cursorMode === 'move'}">
                                     
-                                    <textarea x-model="item.content.question" class="w-full bg-transparent border-none focus:ring-0 p-0 font-bold resize-none h-auto placeholder-gray-400" rows="1"></textarea>
+                                    <textarea x-model="item.content.question" class="w-full bg-transparent border-none focus:ring-0 p-0 font-bold resize-none h-auto placeholder-gray-400" :class="{'pointer-events-none': cursorMode === 'move'}" rows="1"></textarea>
                                 </div>
                                 <div class="flex items-center flex-shrink-0">
                                     <span class="text-xs font-bold">(</span>
-                                    <input type="text" x-model="item.content.point" class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0">
+                                    <input type="text" x-model="item.content.point"  class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0" :class="{'pointer-events-none': cursorMode === 'move'}">
                                     <span class="text-xs font-bold">p)</span>
                                 </div>
                             </div>
@@ -172,18 +192,35 @@
                         </div>
                     </template>
 
-                    {{-- 5. BOŞLUK DOLDURMA --}}
+                    {{-- 5. BOŞLUK DOLDURMA (DÜZELTİLDİ) --}}
                     <template x-if="item.type === 'fill_in_blanks'">
-                        <div class="w-full h-full p-2 text-black flex items-center">
-                            {{-- SORU NUMARASI --}}
-                            <input type="text" x-model="item.content.number" class="w-8 font-bold bg-transparent border-none p-0 focus:ring-0 text-right mr-2">
+                        {{-- DEĞİŞİKLİK 1: 'items-center' yerine 'items-start' yaptık ki yukarı hizalansın --}}
+                        <div class="w-full h-full p-2 text-black flex items-start">
                             
-                            <textarea x-model="item.content.question" class="flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm font-medium leading-loose resize-none overflow-hidden placeholder-gray-400" rows="2"></textarea>
-                            <div class="flex items-center ml-2 flex-shrink-0">
+                            {{-- SORU NUMARASI --}}
+                            {{-- DEĞİŞİKLİK 2: 'mt-1.5' ekledik ki textarea'nın ilk satırıyla hizalansın --}}
+                            <input type="text" 
+                                   x-model="item.content.number"  
+                                   @mousedown.stop 
+                                   class="w-8 font-bold bg-transparent border-none p-0 focus:ring-0 text-right mr-2 mt-1.5 leading-none"
+                                   :class="{'pointer-events-none': cursorMode === 'move'}">
+                            
+                            {{-- SORU METNİ --}}
+                            <textarea x-model="item.content.question" 
+                                      @mousedown.stop 
+                                      class="flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm font-medium leading-loose resize-none overflow-hidden placeholder-gray-400"
+                                      :class="{'pointer-events-none': cursorMode === 'move'}" 
+                                      rows="2"></textarea>
+                            
+                            {{-- PUAN KISMI --}}
+                            {{-- Burası da yukarıda kalsın diye items-start'a uyum sağladı, mt-1.5 ile hizaladık --}}
+                            <div class="flex items-center ml-2 flex-shrink-0 mt-1.5">
                                 <span class="text-xs font-bold">(</span>
-                                <input type="text" x-model="item.content.point" class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0">
+                                <input type="text" x-model="item.content.point" class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0"
+                                :class="{'pointer-events-none': cursorMode === 'move'}">
                                 <span class="text-xs font-bold">p)</span>
                             </div>
+
                         </div>
                     </template>
 
@@ -192,17 +229,18 @@
                         <div class="w-full h-full p-2 text-black flex items-center justify-between">
                             <div class="flex items-center flex-1 gap-2">
                                 {{-- SORU NUMARASI --}}
-                                <input type="text" x-model="item.content.number" class="w-8 font-bold bg-transparent border-none p-0 focus:ring-0 text-right">
+                                <input type="text" x-model="item.content.number" class="w-8 font-bold bg-transparent border-none p-0 focus:ring-0 text-right" :class="{'pointer-events-none': cursorMode === 'move'}">
                                 
-                                <textarea x-model="item.content.question" class="w-full bg-transparent border-none focus:ring-0 p-0 text-sm resize-none overflow-hidden placeholder-gray-400" rows="1"></textarea>
+                                <textarea x-model="item.content.question" class="w-full bg-transparent border-none focus:ring-0 p-0 text-sm resize-none overflow-hidden placeholder-gray-400" 
+                                :class="{'pointer-events-none': cursorMode === 'move'}" rows="1"></textarea>
                             </div>
                             <div class="flex items-center gap-2 flex-shrink-0">
                                 {{-- Format (D / Y) --}}
-                                <input type="text" x-model="item.content.format" class="w-16 text-center font-mono font-bold text-sm bg-transparent border-none p-0 focus:ring-0">
+                                <input type="text" x-model="item.content.format" class="w-16 text-center font-mono font-bold text-sm bg-transparent border-none p-0 focus:ring-0" :class="{'pointer-events-none': cursorMode === 'move'}">
                                 
                                 <div class="flex items-center">
                                     <span class="text-xs font-bold">(</span>
-                                    <input type="text" x-model="item.content.point" class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0">
+                                    <input type="text" x-model="item.content.point" class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0" :class="{'pointer-events-none': cursorMode === 'move'}">
                                     <span class="text-xs font-bold">p)</span>
                                 </div>
                             </div>
@@ -214,6 +252,7 @@
                         <div class="w-full h-full p-2 overflow-hidden flex items-center justify-center">
                             <textarea x-model="item.content.text" 
                                       class="w-full h-full bg-transparent border-none focus:ring-0 p-0 text-center resize-none placeholder-gray-400" 
+                                      :class="{'pointer-events-none': cursorMode === 'move'}"
                                       :style="`color: ${item.styles.color}; font-size: ${item.styles.fontSize}px;`"
                                       placeholder="Yazı yazın..."></textarea>
                         </div>
@@ -224,6 +263,7 @@
                         <div class="w-full h-full p-1">
                             <textarea x-model="item.content" 
                                       class="w-full h-full bg-transparent border-none focus:ring-0 p-0 resize-none overflow-hidden placeholder-gray-400" 
+                                      :class="{'pointer-events-none': cursorMode === 'move'}"
                                       :style="{ fontSize: item.styles.fontSize + 'px', fontWeight: item.styles.fontWeight, color: item.styles.color, textAlign: item.styles.textAlign }"
                                       placeholder="Metin girin..."></textarea>
                         </div>
@@ -250,19 +290,30 @@
 
                     {{-- KONTROLLER --}}
                     <div x-show="selectedId === item.id">
-                        <div class="absolute -right-2 -bottom-2 w-4 h-4 bg-blue-500 rounded-full cursor-nwse-resize z-50"></div>
+                        
+                        {{-- RESIZE HANDLE (Sağ alt köşe) --}}
+                        <div class="absolute -right-2 -bottom-2 w-4 h-4 bg-blue-500 rounded-full cursor-nwse-resize z-[60] no-drag"></div>
+                        
+                        {{-- SİLME BUTONU --}}
                         <button @click.stop="remove(item.id)" 
-                                class="absolute -top-10 -right-0 bg-red-500 text-white w-8 h-8 rounded-full shadow hover:bg-red-600 flex items-center justify-center transition transform hover:scale-110 z-50"
+                                @mousedown.stop
+                                @touchstart.stop
+                                class="no-drag absolute -top-10 -right-2 bg-red-600 text-white w-8 h-8 rounded-full shadow-lg hover:bg-red-500 flex items-center justify-center transition transform hover:scale-110 z-[60] cursor-pointer"
                                 title="Sil">
-                            <i class="fa-solid fa-trash text-xs"></i>
+                            <i class="fa-solid fa-trash text-xs pointer-events-none"></i>
                         </button>
+
+                        {{-- AI BUTONU --}}
                         <template x-if="['multiple_choice', 'open_ended', 'true_false', 'fill_in_blanks'].includes(item.type)">
                             <button @click.stop="openAiModal(item)" 
-                                    class="absolute -top-10 right-10 bg-indigo-600 text-white w-8 h-8 rounded-full shadow hover:bg-indigo-500 flex items-center justify-center transition transform hover:scale-110 z-50 group"
+                                    @mousedown.stop
+                                    @touchstart.stop
+                                    class="no-drag absolute -top-10 right-8 bg-indigo-600 text-white w-8 h-8 rounded-full shadow-lg hover:bg-indigo-500 flex items-center justify-center transition transform hover:scale-110 z-[60] group cursor-pointer"
                                     title="AI ile Doldur">
-                                <i class="fa-solid fa-wand-magic-sparkles text-xs group-hover:animate-spin"></i>
+                                <i class="fa-solid fa-wand-magic-sparkles text-xs pointer-events-none"></i>
                             </button>
                         </template>
+
                     </div>
 
                 </div>

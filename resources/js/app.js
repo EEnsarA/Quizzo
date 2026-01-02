@@ -341,6 +341,10 @@ Alpine.data("examCanvas", (props = {}) => ({
     examTitle: props.examTitle || 'Yeni Sınav Kağıdı',
     examId: props.examId || null,
 
+    isSaved: false,
+    showTitleModal: false, // Modalı açıp kapatır
+    tempTitle: '',
+
     selectedId: null,
     draggingType: null,
     draggingPayload: null,
@@ -350,7 +354,7 @@ Alpine.data("examCanvas", (props = {}) => ({
     activePage: 1,
     totalPages: 1,
 
-
+    aiTargetId: null,
     aiPrompt: '',
     aiContext: '',
     aiFile: null,
@@ -395,7 +399,7 @@ Alpine.data("examCanvas", (props = {}) => ({
 
         window.addEventListener('beforeunload', (e) => {
             // Eğer eleman varsa uyarı göster
-            if (this.elements.length > 0) {
+            if (this.elements.length > 0 && !this.isSaved) {
                 e.preventDefault();
                 e.returnValue = ''; // Tarayıcı standart uyarısını tetikler
             }
@@ -412,6 +416,7 @@ Alpine.data("examCanvas", (props = {}) => ({
 
         interact('.draggable-item')
             .draggable({
+                ignoreFrom: 'input, textarea, button, select, .no-drag',
                 modifiers: [
                     interact.modifiers.restrictRect({
                         restriction: 'parent',
@@ -421,7 +426,7 @@ Alpine.data("examCanvas", (props = {}) => ({
                 ],
                 listeners: {
                     move(event) {
-                        if (self.cursorMode !== 'select') return;
+                        if (self.cursorMode !== 'select' && self.cursorMode !== 'move') return;
                         const id = parseFloat(event.target.id);
                         const item = self.elements.find(el => el.id === id);
                         if (item) { item.x += event.dx; item.y += event.dy; }
@@ -429,17 +434,32 @@ Alpine.data("examCanvas", (props = {}) => ({
                 }
             })
             .resizable({
+                ignoreFrom: '.no-drag',
                 edges: { left: true, right: true, bottom: true, top: true },
                 modifiers: [interact.modifiers.restrictEdges({ outer: 'parent' }), interact.modifiers.restrictSize({ min: { width: 50, height: 20 } })],
                 listeners: {
                     move(event) {
-                        if (self.cursorMode !== 'select') return;
+                        if (self.cursorMode !== 'select' && self.cursorMode !== 'move') return;
                         const id = parseFloat(event.target.id);
                         const item = self.elements.find(el => el.id === id);
                         if (item) {
                             item.w = event.rect.width; item.h = event.rect.height;
                             item.x += event.deltaRect.left; item.y += event.deltaRect.top;
                         }
+                    }
+                }
+            })
+            .on('down', function (event) {
+                if (event.target.closest('.no-drag') || event.target.closest('input') || event.target.closest('textarea')) {
+                    return;
+                }
+                // Sadece Select veya Move modundaysak seçimi yap
+                if (self.cursorMode === 'select' || self.cursorMode === 'move') {
+                    // Tıklanan şeyin ID'sini bulup seçiyoruz
+                    // event.currentTarget yerine event.target.closest kullanarak garantiye alalım
+                    const target = event.target.closest('.draggable-item');
+                    if (target) {
+                        self.select(target.id);
                     }
                 }
             });
@@ -559,7 +579,7 @@ Alpine.data("examCanvas", (props = {}) => ({
         }
         else if (type === 'fill_in_blanks') {
             width = 700;
-            height = 60;
+            height = 80;
             content = {
                 number: '3.',
                 question: 'Boşluk doldurma sorusu...',
@@ -749,7 +769,15 @@ Alpine.data("examCanvas", (props = {}) => ({
             }
         }
     },
-    select(id) { if (this.cursorMode === 'select') this.selectedId = id; },
+    select(id) {
+
+        if (this.cursorMode === 'draw' || this.cursorMode === 'shape') return;
+
+        if (this.cursorMode === 'select' || this.cursorMode === 'move') {
+            this.selectedId = id;
+            // (Opsiyonel) parseFloat gerekirse: this.selectedId = parseFloat(id);
+        }
+    },
     deselect() { this.selectedId = null; },
     remove(id) { this.elements = this.elements.filter(el => el.id !== id); this.selectedId = null; },
 
@@ -791,19 +819,36 @@ Alpine.data("examCanvas", (props = {}) => ({
         }
     },
 
+    saveTitleAndContinue() {
+        if (!this.tempTitle || this.tempTitle.trim() === '') {
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Lütfen geçerli bir isim giriniz!', type: 'warning' } }));
+            return;
+        }
+        this.examTitle = this.tempTitle;
+        this.showTitleModal = false;
+        this.saveExam();
+    },
+
     async saveExam() {
 
-        if (!confirm('Sınav kağıdını kaydetmek istediğine emin misin?')) return;
-        const title = this.examTitle;
+
+        if (this.examTitle.trim() === 'Yeni Sınav Kağıdı' || this.examTitle.trim() === '') {
+            this.tempTitle = '';
+            this.showTitleModal = true;
+            return; // Kod burada durur. Kullanıcı modalda işlem yapana kadar beklemez.
+        }
+
+        if (!confirm(`"${this.examTitle}" olarak kaydedilecek. Emin misin?`)) return;
 
         window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
+
 
         const url = this.examId ? `/exam/update/${this.examId}` : '/exam/save';
 
         try {
-            const response = await axios.post('/exam/save',
+            const response = await axios.post(url,
                 {
-                    title: title,
+                    title: this.examTitle,
                     elements: this.elements,
                     page_count: this.totalPages
                 },
@@ -816,12 +861,16 @@ Alpine.data("examCanvas", (props = {}) => ({
             );
 
             if (response.data.success) {
-                setTimeout(() => {
-                    window.location.href = "/library";
-                }, 1000);
+                if (!this.examId && response.data.id) {
+                    this.examId = response.data.id;
+                }
+                this.isSaved = true;
                 window.dispatchEvent(new CustomEvent('notify', {
                     detail: { message: 'Sınav başarıyla kaydedildi! 💾', type: 'success' }
                 }));
+                setTimeout(() => {
+                    window.location.href = "/library";
+                }, 1000);
             }
 
         } catch (error) {

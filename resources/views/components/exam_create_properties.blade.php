@@ -1,5 +1,13 @@
-<aside class="w-72 bg-gray-800 border-l border-gray-700 flex flex-col z-20 transition-all"
-           x-show="selectedItem" x-transition:enter="translate-x-full" x-transition:enter-end="translate-x-0">
+<aside class="absolute right-0 top-0 h-full w-72 bg-gray-800 border-l border-gray-700 flex flex-col z-30 shadow-2xl"
+       style="display: none;"
+       x-show="selectedItem"
+       {{-- ANİMASYONLARI GERİ EKLEDİK --}}
+       x-transition:enter="transform transition ease-in-out duration-300"
+       x-transition:enter-start="translate-x-full"
+       x-transition:enter-end="translate-x-0"
+       x-transition:leave="transform transition ease-in-out duration-300"
+       x-transition:leave-start="translate-x-0"
+       x-transition:leave-end="translate-x-full">
         
         <div class="p-4 border-b border-gray-700 flex justify-between items-center">
             <h3 class="font-bold text-sm text-gray-300">ÖZELLİKLER</h3>
@@ -68,4 +76,4 @@
                 </div>
             </template>
         </div>
-    </aside>
+</aside>

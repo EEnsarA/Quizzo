@@ -3,7 +3,7 @@
 
 @php
 
-    $imgUrl = $quiz->img_url ? asset('storage/' . $quiz->img_url) : 'https://picsum.photos/seed/'.$quiz->id.'/400/200';
+    $imgUrl = $quiz->img_url ? asset('storage/' . $quiz->img_url) : null ;
     $userAvatar = $quiz->user->avatar_url ? asset('storage/' . $quiz->user->avatar_url) : null;
     
   
@@ -17,7 +17,14 @@
     
 
     <div class="relative h-32 overflow-hidden">
-        <img src="{{ $imgUrl }}" alt="{{ $quiz->title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+
+        @if($quiz->img_url != null)
+            <img src="{{ $imgUrl }}" alt="{{ $quiz->title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+        @else
+            <div class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex flex-col items-center justify-center transition-transform duration-500 group-hover:scale-110">
+                <i class="fa-solid fa-book-open text-5xl text-gray-600 mb-2 group-hover:text-gray-500 transition-colors"></i>  
+            </div>
+        @endif
         
    
         <div class="absolute top-2 right-2">

@@ -3,7 +3,7 @@
 {{-- 4.Modals --}}
 
 {{-- AI (Küçük Modal) --}}
-<div x-show="aiModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" style="display: none;" x-transition.opacity>
+<div x-show="aiModalOpen" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" style="display: none;" x-transition.opacity>
     <div class="bg-[#252526] w-96 rounded-xl shadow-2xl border border-gray-700 p-5" @click.away="aiModalOpen = false">
         <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2"><i class="fa-solid fa-robot text-indigo-400"></i> Bu Soruyu Doldur</h3>
         
@@ -36,7 +36,8 @@
             </div>
         </div>
 
-        <button @click="generateAiContent()" :disabled="aiLoading" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 mt-4 rounded text-xs flex items-center justify-center gap-2 transition disabled:opacity-50">
+        <button @click="generateAiContent()" :disabled="aiLoading"      {{-- Tıklayınca sürüklemeyi engeller --}}
+        class="w-full no-drag bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 mt-4 rounded text-xs flex items-center justify-center gap-2 transition disabled:opacity-50">
             <span x-show="!aiLoading">Oluştur</span><span x-show="aiLoading"><i class="fa-solid fa-circle-notch animate-spin"></i></span>
         </button>
     </div>
