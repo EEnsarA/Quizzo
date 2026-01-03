@@ -26,7 +26,7 @@
         <div class="flex-1 flex flex-col min-h-screen transition-all duration-300"
              :class = "$store.sidebar.open ? 'ml-64' : 'ml-16'"
         >
-            <div class="flex-1 pb-8">
+            <div class="flex-1">
                 <x-navbar />
                 <div class="container mx-auto">
                     <div class="content">

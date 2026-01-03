@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\ExamPaper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\View;
+use Spatie\Browsershot\Browsershot;
 
 class ExamController extends Controller
 {
@@ -112,5 +115,57 @@ class ExamController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'Dosya yüklenemedi'], 400);
+    }
+
+    public function downloadPDF($id)
+    {
+        $exam = ExamPaper::findOrFail($id);
+
+        // 1. JSON verisini al (Senin attığın array)
+        $rawData = is_string($exam->canvas_data) ? json_decode($exam->canvas_data, true) : $exam->canvas_data;
+
+        // 2. Veriyi SAYFA numarasına göre grupla
+        // Çıktı şöyle olacak: [ 1 => [öğeler...], 2 => [öğeler...] ]
+        $pages = collect($rawData)->groupBy('page');
+
+        $html = View::make('pdf.exam-canvas-pdf', compact('exam', 'pages'))->render();
+
+        $filename = Str::slug($exam->title) . '.pdf';
+
+        $pdf = Browsershot::html($html)
+            ->setOption('args', ['--no-sandbox', '--disable-setuid-sandbox'])
+            ->format('A4')
+            ->margins(0, 0, 0, 0) // Kenar boşluğu 0, çünkü canvas'ta her şeyi sen ayarladın
+            ->showBackground()
+            ->pdf();
+
+        return response($pdf)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    }
+
+    public function previewPDF($id)
+    {
+        $exam = ExamPaper::findOrFail($id);
+
+        // --- (HTML oluşturma kısımları aynen kalsın) ---
+        $rawData = is_string($exam->canvas_data) ? json_decode($exam->canvas_data, true) : $exam->canvas_data;
+        $pages = collect($rawData)->groupBy('page');
+        $html = view('pdf.exam-canvas-pdf', compact('exam', 'pages'))->render();
+        $filename = Str::slug($exam->title) . '.pdf';
+
+        // Browsershot ayarları (Aynen kalsın)
+        $pdf = Browsershot::html($html)
+            ->setOption('args', ['--no-sandbox', '--disable-setuid-sandbox'])
+            ->format('A4')
+            ->margins(0, 0, 0, 0)
+            ->showBackground()
+            ->pdf();
+
+        // --- FARKLILIK BURADA ---
+        return response($pdf)
+            ->header('Content-Type', 'application/pdf')
+            // 'attachment' yerine 'inline' yapıyoruz. Bu "Tarayıcıda Göster" demektir.
+            ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
     }
 }

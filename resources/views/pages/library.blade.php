@@ -3,25 +3,27 @@
 
 @section("content")
 
-<div x-data="{ activeTab: 'quizzes' }" class="min-h-screen w-full p-4 md:p-8">
+<div x-data="libraryHandler()" 
+     @trigger-preview.window="openPreview($event.detail.id)"
+     @trigger-download.window="downloadPdf($event.detail.id)"
+     class="min-h-screen w-full p-4 md:p-8">
     <div class="max-w-7xl mx-auto text-[#F2EDE4]">
         
-        {{-- 1. HEADER --}}
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-4 gap-4">
             <div>
                 <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Kütüphanem</h1>
                 <p class="text-gray-400 mt-2">Dijital ve basılı tüm içeriklerin tek bir yerde.</p>
             </div>
             
-            {{-- Yeni Oluştur Butonları --}}
+       
             <div class="flex gap-3">
                 
-                {{-- EXAM CREATOR (Indigo - Tab ile Uyumlu) --}}
+              
                 <a href="{{ route('exam.create') }}" class="flex items-center bg-[#2d2d30] border border-gray-600 hover:border-indigo-500 hover:text-indigo-400 text-gray-300 px-4 py-2 rounded-lg transition font-semibold text-sm group">
                     <i class="fa-solid fa-file-pen mr-2 text-gray-400 group-hover:text-indigo-400 transition-colors"></i> Exam Creator
                 </a>
 
-                {{-- YENİ QUIZ (Yeşil - Tab ile Uyumlu) --}}
+            
                 <a href="{{ route('quiz.create') }}" class="flex items-center bg-[#2d2d30] border border-gray-600 hover:border-green-500 hover:text-green-400 text-gray-300 px-4 py-2 rounded-lg transition font-semibold text-sm group">
                     <i class="fa-solid fa-plus mr-2 text-gray-400 group-hover:text-green-400 transition-colors"></i> Yeni Quiz
                 </a>
@@ -29,7 +31,7 @@
             </div>
         </div>
 
-        {{-- 2. SEKMELER (TABS) --}}
+
         <div class="mb-8 border-b border-gray-700">
             <nav class="flex gap-6">
                 <button @click="activeTab = 'quizzes'" :class="activeTab === 'quizzes' ? 'border-green-500 text-green-400' : 'border-transparent text-gray-400 hover:text-gray-300'" class="whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm flex items-center gap-2 transition-all">
@@ -44,12 +46,11 @@
             </nav>
         </div>
 
-        {{-- 3. İÇERİK ALANI --}}
+      
         
-        {{-- A) ONLINE QUIZLER --}}
+     
         <div x-show="activeTab === 'quizzes'" x-transition.opacity.duration.300ms>
-            
-            {{-- BÖLÜM 1: OLUŞTURDUKLARIM --}}
+        
             <div class="mb-12">
                 <h2 class="text-xl font-semibold mb-6 flex items-center text-gray-300">
                     <i class="fa-solid fa-pen-nib text-green-500 mr-3"></i> Oluşturduklarım
@@ -61,7 +62,7 @@
                         @endforeach
                     </div>
                 @else
-                    {{-- 1. EMPTY STATE ENTEGRASYONU --}}
+              
                     <x-empty_state 
                         icon="fa-solid fa-wand-magic-sparkles" 
                         color="text-yellow-500"
@@ -74,7 +75,7 @@
                 @endif
             </div>
 
-            {{-- BÖLÜM 2: KAYITLI QUİZLER --}}
+     
             <div>
                 <h2 class="text-xl font-semibold mb-6 flex items-center text-gray-300">
                     <i class="fa-solid fa-bookmark text-blue-500 mr-3"></i> Kayıtlı Quizler
@@ -86,7 +87,7 @@
                         @endforeach
                     </div>
                 @else
-                    {{-- 2. EMPTY STATE ENTEGRASYONU --}}
+        
                     <x-empty_state 
                         icon="fa-regular fa-folder-open"
                         color="text-gray-400"
@@ -101,7 +102,6 @@
             </div>
         </div>
 
-        {{-- B) SINAV KAĞITLARI (EXAM CREATOR) --}}
         <div x-show="activeTab === 'exams'" x-transition.opacity.duration.300ms style="display: none;">
             
             <div class="mb-6 flex justify-between items-center">
@@ -118,7 +118,6 @@
                     @endforeach
                 </div>
             @else
-                {{-- 3. EMPTY STATE ENTEGRASYONU --}}
                 <x-empty_state 
                     icon="fa-solid fa-file-circle-plus"
                     color="text-indigo-400"
@@ -132,6 +131,7 @@
         </div>
 
     </div>
+    <x-pdf_preview_modal />
 </div>
 
 @endsection

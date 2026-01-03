@@ -59,5 +59,9 @@
         </div>
     </div>
 
+    <x-pdf_preview_modal />
+
+</div>    
+
 
 @endsection

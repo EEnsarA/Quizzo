@@ -337,12 +337,17 @@ Alpine.data("profileAvatar", (props = {}) => ({
 Alpine.data("examCanvas", (props = {}) => ({
     token: props.token || '',
 
+    //pdf viewer
+    showPreviewModal: false,
+    previewUrl: null,
+    iframeLoading: false,
+
     elements: props.initialElements || [],
     examTitle: props.examTitle || 'Yeni Sınav Kağıdı',
     examId: props.examId || null,
 
     isSaved: false,
-    showTitleModal: false, // Modalı açıp kapatır
+    showTitleModal: false,
     tempTitle: '',
 
     selectedId: null,
@@ -398,10 +403,9 @@ Alpine.data("examCanvas", (props = {}) => ({
         }
 
         window.addEventListener('beforeunload', (e) => {
-            // Eğer eleman varsa uyarı göster
             if (this.elements.length > 0 && !this.isSaved) {
                 e.preventDefault();
-                e.returnValue = ''; // Tarayıcı standart uyarısını tetikler
+                e.returnValue = '';
             }
         });
         this.$nextTick(() => {
@@ -453,10 +457,7 @@ Alpine.data("examCanvas", (props = {}) => ({
                 if (event.target.closest('.no-drag') || event.target.closest('input') || event.target.closest('textarea')) {
                     return;
                 }
-                // Sadece Select veya Move modundaysak seçimi yap
                 if (self.cursorMode === 'select' || self.cursorMode === 'move') {
-                    // Tıklanan şeyin ID'sini bulup seçiyoruz
-                    // event.currentTarget yerine event.target.closest kullanarak garantiye alalım
                     const target = event.target.closest('.draggable-item');
                     if (target) {
                         self.select(target.id);
@@ -516,7 +517,6 @@ Alpine.data("examCanvas", (props = {}) => ({
     addItem(type, x = 50, y = 50, preFilledContent = null) {
         let width = 200, height = 50, content = {};
 
-        // Varsayılan Stiller
         let styles = {
             fontSize: 14,
             color: '#000000',
@@ -529,7 +529,6 @@ Alpine.data("examCanvas", (props = {}) => ({
             borderRadius: 0
         };
 
-        // --- TİPE GÖRE AYARLAR ---
 
         if (type === 'header_block') {
             width = 600;
@@ -545,12 +544,10 @@ Alpine.data("examCanvas", (props = {}) => ({
         else if (type === 'student_info') {
             width = 700;
             height = 80;
-            // İstersen border'ı tamamen kaldırabilirsin, çünkü içeride tablo yapısı var
             styles.borderWidth = 0;
             styles.backgroundColor = 'transparent';
 
             content = {
-                // Val değerlerini BOŞ bıraktık, böylece noktalar gitti.
                 label1: 'Adı Soyadı:', val1: '',
                 label2: 'Numara:', val2: '',
                 label3: 'Sınıfı:', val3: '',
@@ -561,10 +558,9 @@ Alpine.data("examCanvas", (props = {}) => ({
             width = 700;
             height = 180;
             content = {
-                number: '1.', // <--- YENİ: Soru Numarası
+                number: '1.',
                 question: 'Soru metnini buraya giriniz...',
                 point: '10',
-                // A), B) yazılarını kaldırdık, HTML otomatik koyacak
                 options: ['Seçenek A metni', 'Seçenek B metni', 'Seçenek C metni', 'Seçenek D metni', 'Seçenek E metni']
             };
         }
@@ -593,7 +589,7 @@ Alpine.data("examCanvas", (props = {}) => ({
                 number: '4.',
                 question: 'Doğru yanlış sorusu...',
                 point: '5',
-                format: 'D / Y' // <--- GÜNCELLENDİ
+                format: 'D / Y'
             };
         }
         else if (type === 'custom_question') {
@@ -634,21 +630,17 @@ Alpine.data("examCanvas", (props = {}) => ({
             styles.borderWidth = 2;
         }
 
-        // --- PRE-FILLED İÇERİK VARSA YÜKLE ---
         if (preFilledContent) {
             content = JSON.parse(JSON.stringify(preFilledContent));
-            // Varsayılan boyutları koru (veya kaydedilen boyutu kullanmak istersen burayı silebilirsin)
             if (type === 'multiple_choice') { width = 700; height = 150; }
             if (type === 'open_ended') { width = 700; height = 120; }
             if (type === 'fill_in_blanks') { width = 700; height = 60; }
             if (type === 'true_false') { width = 700; height = 50; }
         }
 
-        // --- MERKEZLEME HESABI ---
         x = x - (width / 2);
         y = y - (height / 2);
 
-        // --- KAĞIT DIŞINA TAŞMAYI ENGELLE ---
         const paper = document.getElementById('paper');
         if (paper) {
             const paperW = paper.offsetWidth;
@@ -661,7 +653,6 @@ Alpine.data("examCanvas", (props = {}) => ({
             if (y + height > paperH) y = paperH - height;
         }
 
-        // --- DİZİYE EKLE ---
         this.elements.push({
             id: Date.now() + Math.random(),
             page: this.activePage,
@@ -673,8 +664,6 @@ Alpine.data("examCanvas", (props = {}) => ({
             h: height,
             styles: styles
         });
-
-        // --- YENİ EKLENENİ SEÇ ---
         const newItem = this.elements[this.elements.length - 1];
         this.selectedId = newItem.id;
     },
@@ -775,7 +764,6 @@ Alpine.data("examCanvas", (props = {}) => ({
 
         if (this.cursorMode === 'select' || this.cursorMode === 'move') {
             this.selectedId = id;
-            // (Opsiyonel) parseFloat gerekirse: this.selectedId = parseFloat(id);
         }
     },
     deselect() { this.selectedId = null; },
@@ -784,8 +772,6 @@ Alpine.data("examCanvas", (props = {}) => ({
     async uploadImage(event, item) {
         const file = event.target.files[0];
         if (!file) return;
-
-        // Kullanıcıya işlem yapıldığını gösterelim
         window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
 
         const formData = new FormData();
@@ -811,10 +797,7 @@ Alpine.data("examCanvas", (props = {}) => ({
                 detail: { message: 'Resim yüklenirken hata oluştu', type: 'error' }
             }));
         } finally {
-            // İşlem bitince input'u sıfırla (aynı resmi tekrar seçebilmek için)
             event.target.value = '';
-
-            // Loading'i kapat
             window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
         }
     },
@@ -829,67 +812,151 @@ Alpine.data("examCanvas", (props = {}) => ({
         this.saveExam();
     },
 
-    async saveExam() {
+    async saveAndAction(actionType) {
 
-
-        if (this.examTitle.trim() === 'Yeni Sınav Kağıdı' || this.examTitle.trim() === '') {
-            this.tempTitle = '';
+        if (!this.examId && (!this.examTitle || this.examTitle === 'Yeni Sınav Kağıdı' || this.examTitle.trim() === '')) {
             this.showTitleModal = true;
-            return; // Kod burada durur. Kullanıcı modalda işlem yapana kadar beklemez.
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Önce sınava bir isim vermelisin.', type: 'info' } }));
+            return;
         }
 
-        if (!confirm(`"${this.examTitle}" olarak kaydedilecek. Emin misin?`)) return;
+        if (actionType === 'library') {
+            if (!confirm(`"${this.examTitle}" olarak kaydedilecek. Emin misin?`)) return;
+        }
+
+        let actionMessage = 'İşlem yapılıyor...';
+        if (actionType === 'download') actionMessage = 'PDF İndiriliyor...';
+        else if (actionType === 'preview') actionMessage = 'Ön İzleme Hazırlanıyor...';
+        else if (actionType === 'library') actionMessage = 'Kütüphaneye Dönülüyor...';
 
         window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
-
-
-        const url = this.examId ? `/exam/update/${this.examId}` : '/exam/save';
+        window.dispatchEvent(new CustomEvent('notify', { detail: { message: `Kaydediliyor ve ${actionMessage}`, type: 'info' } }));
 
         try {
-            const response = await axios.post(url,
-                {
-                    title: this.examTitle,
-                    elements: this.elements,
-                    page_count: this.totalPages
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': this.token
-                    }
-                }
-            );
+            const url = this.examId ? `/exam/update/${this.examId}` : '/exam/save';
+            const payload = {
+                title: this.examTitle,
+                elements: this.elements,
+                page_count: this.totalPages || 1
+            };
+
+            const response = await axios.post(url, payload, {
+                headers: { 'X-CSRF-TOKEN': this.token, 'Content-Type': 'application/json' }
+            });
 
             if (response.data.success) {
+
+
                 if (!this.examId && response.data.id) {
                     this.examId = response.data.id;
+                    window.history.pushState({}, '', `/exam/edit/${this.examId}`);
                 }
+
                 this.isSaved = true;
-                window.dispatchEvent(new CustomEvent('notify', {
-                    detail: { message: 'Sınav başarıyla kaydedildi! 💾', type: 'success' }
-                }));
-                setTimeout(() => {
-                    window.location.href = "/library";
-                }, 1000);
+
+                //  PDF İNDİR
+                if (actionType === 'download') {
+                    const link = document.createElement('a');
+                    link.href = `/exam/${this.examId}/download`;
+                    link.setAttribute('download', '');
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'PDF iniyor! 📄', type: 'success' } }));
+                }
+
+                // ÖN İZLEME 
+                else if (actionType === 'preview') {
+                    this.iframeLoading = true;
+                    this.previewUrl = `/exam/${this.examId}/preview?t=${new Date().getTime()}`;
+                    this.showPreviewModal = true;
+                    window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Ön izleme açıldı!', type: 'success' } }));
+                }
+
+                else if (actionType === 'library') {
+                    window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Kütüphaneye gidiliyor...', type: 'success' } }));
+                    setTimeout(() => {
+                        window.location.href = "/library";
+                    }, 1000);
+                    return;
+                }
             }
 
         } catch (error) {
-            console.error("Kayıt Hatası:", error);
-
-            let errorMsg = 'Kaydetme sırasında bir hata oluştu!';
-            if (error.response && error.response.status === 419) {
-                errorMsg = 'Oturum süreniz dolmuş, lütfen sayfayı yenileyin.';
-            }
-
-            window.dispatchEvent(new CustomEvent('notify', {
-                detail: { message: errorMsg, type: 'error' }
-            }));
-            window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
+            console.error("Hata:", error);
+            let msg = error.response?.data?.message || 'Bir hata oluştu.';
+            if (error.response?.status === 419) msg = 'Oturum süreniz dolmuş, sayfayı yenileyin.';
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: msg, type: 'error' } }));
         } finally {
-            this.aiLoading = false;
+            if (actionType !== 'library') {
+                window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
+            }
         }
     },
+
     saveToConsole() { console.log(JSON.stringify(this.elements)); window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Kayıt Başarılı!', type: 'success' } }));; }
+}));
+
+//? Library Handler
+Alpine.data("libraryHandler", (props = {}) => ({
+    // --- STATE DEĞİŞKENLERİ ---
+    activeTab: 'quizzes',
+    showPreviewModal: false, // Modalı açıp kapatır
+    previewUrl: null,        // Iframe içine gidecek PDF adresi
+    iframeLoading: false,    // Iframe yüklenirken dönecek spinner
+
+    // --- 1. ÖN İZLEME FONKSİYONU ---
+    openPreview(id) {
+        // Kullanıcıya bilgi ver
+        window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
+        window.dispatchEvent(new CustomEvent('notify', {
+            detail: { message: 'Ön izleme hazırlanıyor...', type: 'info' }
+        }));
+
+        // Iframe loading'i başlat
+        this.iframeLoading = true;
+
+        // URL'i oluştur (Cache sorunu olmasın diye timestamp ekledik)
+        this.previewUrl = `/exam/${id}/preview?t=${new Date().getTime()}`;
+
+        // Biraz bekleyip modalı aç (Loading hissi ve animasyon için)
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
+            this.showPreviewModal = true;
+
+            window.dispatchEvent(new CustomEvent('notify', {
+                detail: { message: 'Ön izleme hazır! 👀', type: 'success' }
+            }));
+        }, 500);
+    },
+
+    // --- 2. İNDİRME FONKSİYONU ---
+    downloadPdf(id) {
+        // Kullanıcıya bilgi ver
+        window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
+        window.dispatchEvent(new CustomEvent('notify', {
+            detail: { message: 'PDF hazırlanıyor ve iniyor...', type: 'info' }
+        }));
+
+        // Gizli link oluşturma taktiği
+        const link = document.createElement('a');
+        link.href = `/exam/${id}/download`;
+        link.setAttribute('download', '');
+        link.style.display = 'none';
+        document.body.appendChild(link);
+
+        // İndirmeyi tetikle
+        setTimeout(() => {
+            link.click();
+            document.body.removeChild(link);
+
+            window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
+            window.dispatchEvent(new CustomEvent('notify', {
+                detail: { message: 'İndirme başladı! 📄', type: 'success' }
+            }));
+        }, 800);
+    }
 }));
 
 Alpine.start();

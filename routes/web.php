@@ -37,6 +37,8 @@ Route::get('/exam/edit/{id}', [ExamController::class, 'edit'])->name('exam.edit'
 Route::post('/exam/update/{id}', [ExamController::class, 'update'])->name('exam.update');
 Route::delete('/exam/delete/{id}', [ExamController::class, 'destroy'])->name('exam.delete');
 Route::post('/exam/upload-image', [ExamController::class, 'uploadImage'])->name('exam.upload.image');
+Route::get('/exam/{id}/download', [ExamController::class, 'downloadPDF'])->name('exam.download');
+Route::get('/exam/{id}/preview', [ExamController::class, 'previewPDF'])->name('exam.preview');
 // ====================================================
 // 2. KORUMALI ROTALAR (Sadece Giriş Yapmış Üyeler)
 // ====================================================

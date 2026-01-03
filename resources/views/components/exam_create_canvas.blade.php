@@ -35,11 +35,28 @@
 
         <div class="flex items-center gap-2 absolute top-3 transition-all duration-300 ease-in-out z-[100]" :style="selectedItem ? 'right: 19rem;' : 'right: 1rem;'">
             @auth
-                <button @click="saveExam()" class="px-3 py-1.5 bg-[#3e3e42] hover:bg-[#4e4e52] text-white rounded text-xs font-medium transition-colors">Kaydet</button>
-                <button class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2"><i class="fa-solid fa-download"></i> PDF</button>
+                <button @click="saveAndAction('library')" class="px-3 py-1.5 bg-[#3e3e42] hover:bg-[#4e4e52] text-white rounded text-xs font-medium transition-colors">Kaydet</button>
+                <button 
+                @click="saveAndAction('preview')"
+                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2">
+                    <i class="fa-solid fa-eye"></i> 
+                    Ön İzle
+                </button>
+                <button 
+                @click="saveAndAction('download')"
+                class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf"></i> 
+                    PDF İndir
+                </button>
             @else
-                <button @click="$dispatch('notify', { message: 'AI özelliklerini kullanmak için lütfen giriş yapın!', type: 'warning' })" class="px-3 py-1.5 bg-[#3e3e42] hover:bg-[#4e4e52] text-white rounded text-xs font-medium transition-colors">Kaydet</button>
-                <button @click="$dispatch('notify', { message: 'AI özelliklerini kullanmak için lütfen giriş yapın!', type: 'warning' })" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2"><i class="fa-solid fa-download"></i> PDF</button>
+                <button @click="$dispatch('notify', { message: ' Lütfen giriş yapın!', type: 'warning' })" class="px-3 py-1.5 bg-[#3e3e42] hover:bg-[#4e4e52] text-white rounded text-xs font-medium transition-colors">Kaydet</button>
+                <button 
+                @click="$dispatch('notify', { message: ' Lütfen giriş yapın!', type: 'warning' })"
+                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2">
+                    <i class="fa-solid fa-eye"></i> 
+                    Ön İzle
+                </button>
+                <button @click="$dispatch('notify', { message: ' Lütfen giriş yapın!', type: 'warning' })" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2"><i class="fa-solid fa-download"></i> PDF</button>
             @endauth
         </div>
     </header>
@@ -150,10 +167,26 @@
                                 <textarea x-model="item.content.question" class="flex-1 bg-transparent border-none focus:ring-0 p-0 font-bold resize-none h-auto overflow-hidden placeholder-gray-400"
                                  :class="{'pointer-events-none': cursorMode === 'move'}" rows="1"></textarea>
                                 
-                                <div class="flex items-start flex-shrink-0">
-                                    <span class="text-xs font-bold">(</span>
-                                    <input type="text" x-model="item.content.point" class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0" :class="{'pointer-events-none': cursorMode === 'move'}">
-                                    <span class="text-xs font-bold">p)</span>
+                                <div class="flex items-center gap-0.5"> {{-- Parantez aç: Sadece puan girilmişse görünsün --}}
+                                    <span class="text-xs font-bold" 
+                                        x-show="item.content.point && item.content.point.toString().trim() !== ''">
+                                        (
+                                    </span>
+
+                                    {{-- INPUT: Her zaman görünür olmalı ki tıklayıp yazabilsin --}}
+                                    {{-- placeholder ekledim ki boşken orada tıklanacak bir alan olduğu belli olsun --}}
+                                    <input type="text" 
+                                        x-model="item.content.point" 
+                                        placeholder="Pn"
+                                        class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0 placeholder-gray-300" 
+                                        :class="{'pointer-events-none': cursorMode === 'move'}">
+
+                                    {{-- Puan Yazısı ve Parantez Kapa: Sadece puan girilmişse görünsün --}}
+                                    <span class="text-xs font-bold" 
+                                        x-show="item.content.point && item.content.point.toString().trim() !== ''">
+                                        p)
+                                    </span>
+
                                 </div>
                             </div>
                             
@@ -182,10 +215,26 @@
                                     
                                     <textarea x-model="item.content.question" class="w-full bg-transparent border-none focus:ring-0 p-0 font-bold resize-none h-auto placeholder-gray-400" :class="{'pointer-events-none': cursorMode === 'move'}" rows="1"></textarea>
                                 </div>
-                                <div class="flex items-center flex-shrink-0">
-                                    <span class="text-xs font-bold">(</span>
-                                    <input type="text" x-model="item.content.point"  class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0" :class="{'pointer-events-none': cursorMode === 'move'}">
-                                    <span class="text-xs font-bold">p)</span>
+                                <div class="flex items-center gap-0.5"> {{-- Parantez aç: Sadece puan girilmişse görünsün --}}
+                                    <span class="text-xs font-bold" 
+                                        x-show="item.content.point && item.content.point.toString().trim() !== ''">
+                                        (
+                                    </span>
+
+                                    {{-- INPUT: Her zaman görünür olmalı ki tıklayıp yazabilsin --}}
+                                    {{-- placeholder ekledim ki boşken orada tıklanacak bir alan olduğu belli olsun --}}
+                                    <input type="text" 
+                                        x-model="item.content.point" 
+                                        placeholder="Pn"
+                                        class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0 placeholder-gray-300" 
+                                        :class="{'pointer-events-none': cursorMode === 'move'}">
+
+                                    {{-- Puan Yazısı ve Parantez Kapa: Sadece puan girilmişse görünsün --}}
+                                    <span class="text-xs font-bold" 
+                                        x-show="item.content.point && item.content.point.toString().trim() !== ''">
+                                        p)
+                                    </span>
+
                                 </div>
                             </div>
                             <div class="w-full flex-1 border-b border-gray-300 bg-[linear-gradient(to_bottom,transparent_20px,#ccc_21px)] bg-[size:100%_21px]"></div>
@@ -212,15 +261,29 @@
                                       :class="{'pointer-events-none': cursorMode === 'move'}" 
                                       rows="2"></textarea>
                             
-                            {{-- PUAN KISMI --}}
-                            {{-- Burası da yukarıda kalsın diye items-start'a uyum sağladı, mt-1.5 ile hizaladık --}}
-                            <div class="flex items-center ml-2 flex-shrink-0 mt-1.5">
-                                <span class="text-xs font-bold">(</span>
-                                <input type="text" x-model="item.content.point" class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0"
-                                :class="{'pointer-events-none': cursorMode === 'move'}">
-                                <span class="text-xs font-bold">p)</span>
-                            </div>
+                            {{-- PUAN KISMI (GÜNCELLENMİŞ) --}}
+                            <div class="flex items-center ml-2 flex-shrink-0 mt-1.5 gap-0.5">
+                                
+                                {{-- Parantez Aç: Sadece puan doluysa görünür --}}
+                                <span class="text-xs font-bold" 
+                                    x-show="item.content.point && item.content.point.toString().trim() !== ''">
+                                    (
+                                </span>
 
+                                {{-- Input: Boşken "Pn" yazar, böylece yerini belli eder --}}
+                                <input type="text" 
+                                    x-model="item.content.point" 
+                                    placeholder="Pn"
+                                    class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0 placeholder-gray-300"
+                                    :class="{'pointer-events-none': cursorMode === 'move'}">
+
+                                {{-- Parantez Kapa: Sadece puan doluysa görünür --}}
+                                <span class="text-xs font-bold" 
+                                    x-show="item.content.point && item.content.point.toString().trim() !== ''">
+                                    p)
+                                </span>
+
+                            </div>
                         </div>
                     </template>
 
@@ -238,10 +301,26 @@
                                 {{-- Format (D / Y) --}}
                                 <input type="text" x-model="item.content.format" class="w-16 text-center font-mono font-bold text-sm bg-transparent border-none p-0 focus:ring-0" :class="{'pointer-events-none': cursorMode === 'move'}">
                                 
-                                <div class="flex items-center">
-                                    <span class="text-xs font-bold">(</span>
-                                    <input type="text" x-model="item.content.point" class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0" :class="{'pointer-events-none': cursorMode === 'move'}">
-                                    <span class="text-xs font-bold">p)</span>
+                                <div class="flex items-center gap-0.5"> {{-- Parantez aç: Sadece puan girilmişse görünsün --}}
+                                    <span class="text-xs font-bold" 
+                                        x-show="item.content.point && item.content.point.toString().trim() !== ''">
+                                        (
+                                    </span>
+
+                                    {{-- INPUT: Her zaman görünür olmalı ki tıklayıp yazabilsin --}}
+                                    {{-- placeholder ekledim ki boşken orada tıklanacak bir alan olduğu belli olsun --}}
+                                    <input type="text" 
+                                        x-model="item.content.point" 
+                                        placeholder="Pn"
+                                        class="w-6 text-center text-xs font-bold bg-transparent border-none p-0 focus:ring-0 placeholder-gray-300" 
+                                        :class="{'pointer-events-none': cursorMode === 'move'}">
+
+                                    {{-- Puan Yazısı ve Parantez Kapa: Sadece puan girilmişse görünsün --}}
+                                    <span class="text-xs font-bold" 
+                                        x-show="item.content.point && item.content.point.toString().trim() !== ''">
+                                        p)
+                                    </span>
+
                                 </div>
                             </div>
                         </div>
@@ -292,7 +371,7 @@
                     <div x-show="selectedId === item.id">
                         
                         {{-- RESIZE HANDLE (Sağ alt köşe) --}}
-                        <div class="absolute -right-2 -bottom-2 w-4 h-4 bg-blue-500 rounded-full cursor-nwse-resize z-[60] no-drag"></div>
+                        <div class="absolute -right-2 -bottom-2 w-4 h-4 bg-blue-500 rounded-full cursor-nwse-resize z-[60] pointer-events-auto"></div>
                         
                         {{-- SİLME BUTONU --}}
                         <button @click.stop="remove(item.id)" 
