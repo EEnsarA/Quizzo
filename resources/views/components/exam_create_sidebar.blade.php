@@ -1,5 +1,5 @@
    
-   {{-- 1. SOL SIDEBAR --}}
+  
     <aside class="flex-none w-72 bg-[#252526] border-r border-[#3e3e42] flex flex-col shadow-2xl z-20 select-none">
         
         <div class="p-4 border-b border-[#3e3e42] bg-[#2d2d30]">
@@ -11,7 +11,7 @@
         <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
         
 
-            {{-- ARAÇLAR --}}
+        
 
             <div>
                 <h4 class="text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-wider">EKLE</h4>
@@ -39,7 +39,7 @@
                 </div>
             </div>
 
-            {{-- ŞABLONLAR --}}
+           
             <div>
                 <h4 class="text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-wider">ŞABLONLAR</h4>
                 <div class="space-y-2">
@@ -52,7 +52,7 @@
                 </div>
             </div>
 
-            {{-- SORU TİPLERİ --}}
+          
             <div>
                 <h4 class="text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-wider">SORU TİPLERİ</h4>
                 <div class="space-y-2">
@@ -79,17 +79,17 @@
                 </div>
             </div>
 
-            {{--  HAVUZ  --}}
+          
             <div class="pt-4 border-t border-[#3e3e42]">
                 <h4 class="text-xs font-bold text-blue-400 uppercase mb-3 tracking-wider">AI ILE SORU OLUSTUR</h4>
                 
-                {{-- Modal Açma Butonu --}}
+             
                 <button @click="aiBatchModalOpen = true" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3 rounded-lg shadow-lg flex items-center justify-center gap-2 mb-4 transition-all group">
                     <i class="fa-solid fa-wand-magic-sparkles group-hover:animate-pulse"></i>
                     <span class="font-bold text-sm">AI Soru Sihirbazı</span>
                 </button>
 
-                {{-- HAVUZ LİSTESİ  --}}
+             
                 <div class="space-y-2 border border-dashed border-gray-600 rounded-lg min-h-32 p-4">
                     <div class="flex justify-between items-center mb-1">
                         <span class="text-[10px] text-gray-500 font-bold uppercase">Soru Havuzu (AI)</span>
@@ -105,7 +105,7 @@
                              @dragstart="dragStart($event, group.type, idx)"
                              class="group bg-[#333333] hover:bg-[#3e3e42] p-3 rounded-lg border border-[#3e3e42] hover:border-indigo-500 cursor-grab active:cursor-grabbing transition-all relative overflow-hidden shadow-sm">
                             
-                            {{-- Badge (Zorluk) --}}
+                          
                             <div class="absolute top-0 right-0 px-2 py-0.5 rounded-bl-md text-[10px] font-bold text-white shadow-sm"
                                  :class="{
                                     'bg-green-600': group.difficulty === 'easy',
@@ -116,8 +116,7 @@
                             </div>
 
                             <div class="flex items-center gap-2 mt-1">
-                                {{-- AI İkonu --}}
-                                {{-- fa-solid fa-robot text-indigo-400 text-lg --}}
+                      
                                 <i :class="{
                                     'fa-solid fa-list-ul text-green-500 text-lg' : group.typeName === 'Çoktan Seçmeli',
                                     'fa-solid fa-align-left text-orange-500 text-lg' : group.typeName === 'Klasik',
@@ -125,7 +124,6 @@
                                     'fa-solid fa-check-double text-red-500 text-lg' : group.typeName === 'Doğru/Yanlış',
                                 }"></i>
                                 
-                                {{-- Format: (AI) Tip Adet --}}
                                 <div class="flex flex-col leading-tight">
                                     <span class="text-xs font-bold text-gray-200">
                                         (AI) <span x-text="group.typeName"></span>

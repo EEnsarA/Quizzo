@@ -172,6 +172,9 @@ class QuizController extends Controller
     public function add_quiz(Request $request)
     {
         if (!Auth::check()) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Oturum süreniz dolmuş.'], 401);
+            }
             return redirect()->route("home");
         }
 
@@ -218,8 +221,12 @@ class QuizController extends Controller
         /** @var \App\Models\User $user */  #PHP Intelephense sorunu
         $user->libraryQuizzes()->attach($quiz->id);
 
-
-        return redirect()->route("quiz.add.questions", $quiz)->with('success', 'Yeni Quiz Oluşturuldu.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Yeni Quiz başarıyla oluşturuldu! 🚀',
+            'redirect' => route("quiz.add.questions", $quiz) // Yönlendirilecek adresi JS'e gönderiyoruz
+        ]);
+        // return redirect()->route("quiz.add.questions", $quiz)->with('success', 'Yeni Quiz Oluşturuldu.');
     }
 
     public function add_questions(Request $request)
@@ -390,7 +397,14 @@ class QuizController extends Controller
         /** @var \App\Models\User $user */  #PHP Intelephense sorunu
         $user->libraryQuizzes()->attach($quiz->id);
 
-        return redirect()->route("library.show")->with('success', 'Yeni Quiz Oluşturuldu.');
+        //Eski
+        //return redirect()->route("library.show")->with('success', 'Yeni Quiz Oluşturuldu.');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Yeni Quiz başarıyla oluşturuldu! 🚀',
+            'redirect' => route("library.show")
+        ]);
     }
 
 

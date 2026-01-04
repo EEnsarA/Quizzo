@@ -5,28 +5,24 @@
 
 <div x-data="examCanvas({{ Js::from([
     'token' => csrf_token(),
-    'initialElements' => isset($examPaper) ? $examPaper->canvas_data : [], // Kayıtlı elemanlar
+    'initialElements' => isset($examPaper) ? $examPaper->canvas_data : [], 
     'examTitle' => isset($examPaper) ? $examPaper->title : 'Yeni Sınav Kağıdı',
-    'examId' => isset($examPaper) ? $examPaper->id : null // ID varsa Update modudur
+    'examId' => isset($examPaper) ? $examPaper->id : null // ID varsa Update 
     ]) }})"
     class="flex relative w-full h-[calc(100vh-64px)] bg-[#1e1e1e] font-sans overflow-hidden">
     
-    {{-- 1. SOL SIDEBAR (KAYNAK) --}}
+  
     <x-exam_create_sidebar />
 
     <div class="flex-1 relative h-full min-w-0 transition-[padding] duration-300 ease-in-out"
      :class="{'pr-0': !selectedItem, 'pr-72': selectedItem}">
-        {{-- 2. ANA DÜZENLEYİCİ (TARGET) CANVAS --}}
+    
         <x-exam_create_canvas />
-        {{-- 4.Modals --}}
         <x-exam_create_modals />
     </div>
     
-    {{-- 3. SAĞ AYAR PANELİ (ÖZELLİKLER) - Geri Eklendi --}}
     <x-exam_create_properties />
     
-    
-    {{-- İSİM DEĞİŞTİRME MODALI --}}
     <div x-show="showTitleModal" 
         class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm"
         x-transition.opacity

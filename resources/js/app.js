@@ -147,13 +147,82 @@ Alpine.data("quizPlayer", () => ({
 //? Quiz Create
 Alpine.data("quizCreate", (props = {}) => ({
 
+    token: props.token || '',
     negativeMarkingEnabled: false,
     fileName: "",
     fileUrl: "",
     errors: props.errors || {},
 
+    sourceFileName: null,
+    sourceFile: null,
+    aiLoading: false,
+
+
+    async submitQuiz(targetUrl) {
+
+        window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
+        window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'İşlem yapılıyor, lütfen bekleyin...', type: 'info' } }));
+
+        let formElement = document.getElementById('quiz-create-form');
+        let formData = new FormData(formElement);
+
+        if (this.sourceFile) {
+            formData.append('source_file', this.sourceFile);
+        }
+
+        if (!this.negativeMarkingEnabled) {
+            formData.delete('wrong_to_correct_ratio');
+            formData.append('wrong_to_correct_ratio', 0);
+        }
+
+        try {
+            // 3. Axios İsteği
+            const response = await axios.post(targetUrl, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRF-TOKEN': this.token
+                }
+            });
+
+            if (response.data.success) {
+                // 4. Başarılıysa Bildirim ve Yönlendirme
+                window.dispatchEvent(new CustomEvent('notify', { detail: { message: response.data.message, type: 'success' } }));
+
+                setTimeout(() => {
+                    window.location.href = response.data.redirect;
+                }, 1000);
+            }
+
+        } catch (error) {
+            console.error(error);
+            // 5. Hata Yönetimi
+            if (error.response && error.response.status === 422) {
+                // Laravel Validasyon Hatası
+                this.errors = error.response.data.errors;
+                window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Lütfen hatalı alanları kontrol edin.', type: 'error' } }));
+            } else {
+                // Genel Hata
+                let msg = error.response?.data?.message || 'Bir hata oluştu.';
+                window.dispatchEvent(new CustomEvent('notify', { detail: { message: msg, type: 'error' } }));
+            }
+            // Hata alınca loading'i kapat
+            window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
+        }
+    },
+
+
+    setSourceFile(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.sourceFileName = file.name;
+            this.sourceFile = file;
+        } else {
+            this.sourceFileName = null;
+            this.sourceFile = null;
+        }
+    },
+
     hasError(field) {
-        // hata yoksa undefined dönüyoruz 
         if (this.errors[field]) return true;
 
         else return false;
@@ -177,6 +246,8 @@ Alpine.data("questionCreate", (props = {}) => ({
     current_q_index: 0,
     quizId: props.quizId,
     errors: [],
+    sourceFileName: null, // Sidebar PDF adı
+    aiLoading: false,
 
     questions: Array.from({ length: props.number_of_questions ?? 0 }, () => ({
         title: null,
@@ -286,10 +357,33 @@ Alpine.data("questionCreate", (props = {}) => ({
             console.log("Error : ", error.response.data);
             if (error.response && error.response.status === 422) {
                 this.errors = error.response.data.errors;
-                console.log("errors : ", this.errors); // Hataları konsolda görebilirsiniz
+                console.log("errors : ", this.errors);
             }
         }
 
+    },
+    async generateSingleQuestionAI() {
+        if (!this.sourceFileName && !this.questions[this.current_q_index].title) {
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Lütfen önce döküman yükleyin veya bir konu başlığı girin!', type: 'warning' } }));
+            return;
+        }
+
+        this.aiLoading = true;
+
+        try {
+
+            // simülasyon örnek öylesine
+            setTimeout(() => {
+                this.questions[this.current_q_index].title = "AI Tarafından Üretilen Başlık";
+                this.questions[this.current_q_index].content = "Bu soru yapay zeka tarafından döküman analiz edilerek oluşturulmuştur.";
+                this.aiLoading = false;
+                window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Soru başarıyla üretildi! ✨', type: 'success' } }));
+            }, 1500);
+
+        } catch (error) {
+            console.error(error);
+            this.aiLoading = false;
+        }
     }
 
 
@@ -900,27 +994,22 @@ Alpine.data("examCanvas", (props = {}) => ({
 
 //? Library Handler
 Alpine.data("libraryHandler", (props = {}) => ({
-    // --- STATE DEĞİŞKENLERİ ---
     activeTab: 'quizzes',
-    showPreviewModal: false, // Modalı açıp kapatır
-    previewUrl: null,        // Iframe içine gidecek PDF adresi
-    iframeLoading: false,    // Iframe yüklenirken dönecek spinner
+    showPreviewModal: false,
+    previewUrl: null,
+    iframeLoading: false,
 
-    // --- 1. ÖN İZLEME FONKSİYONU ---
+    // ---  ÖN İZLEME FONKSİYONU ---
     openPreview(id) {
-        // Kullanıcıya bilgi ver
         window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
         window.dispatchEvent(new CustomEvent('notify', {
             detail: { message: 'Ön izleme hazırlanıyor...', type: 'info' }
         }));
 
-        // Iframe loading'i başlat
         this.iframeLoading = true;
 
-        // URL'i oluştur (Cache sorunu olmasın diye timestamp ekledik)
         this.previewUrl = `/exam/${id}/preview?t=${new Date().getTime()}`;
 
-        // Biraz bekleyip modalı aç (Loading hissi ve animasyon için)
         setTimeout(() => {
             window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
             this.showPreviewModal = true;
@@ -931,22 +1020,19 @@ Alpine.data("libraryHandler", (props = {}) => ({
         }, 500);
     },
 
-    // --- 2. İNDİRME FONKSİYONU ---
+    // --- İNDİRME FONKSİYONU ---
     downloadPdf(id) {
-        // Kullanıcıya bilgi ver
         window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
         window.dispatchEvent(new CustomEvent('notify', {
             detail: { message: 'PDF hazırlanıyor ve iniyor...', type: 'info' }
         }));
 
-        // Gizli link oluşturma taktiği
         const link = document.createElement('a');
         link.href = `/exam/${id}/download`;
         link.setAttribute('download', '');
         link.style.display = 'none';
         document.body.appendChild(link);
 
-        // İndirmeyi tetikle
         setTimeout(() => {
             link.click();
             document.body.removeChild(link);

@@ -13,12 +13,10 @@
          'token'      => csrf_token()
      ]) }})">
 
-    {{-- 1. BÖLÜM: PROFİL BAŞLIĞI VE AVATAR --}}
-    <div class="w-full text-[#F2EDE4] mt-2 p-4 md:p-12 pb-0"> {{-- Alt padding'i kıstım ki tablar çok aşağı inmesin --}}
+    <div class="w-full text-[#F2EDE4] mt-2 p-4 md:p-12 pb-0"> 
  
         <div class="flex flex-col md:flex-row items-center gap-6 md:gap-10 border-b border-gray-700 pb-8" >
             
-            {{-- Avatar Alanı --}}
             <div class="relative w-32 h-32 md:w-40 md:h-40 flex-shrink-0 group">
                 <input type="file" 
                        id="avatarUpload" 
@@ -27,7 +25,7 @@
                        accept="image/png, image/jpeg, image/jpg" 
                        @change="updateAvatar($event)">
       
-                {{-- Resim Önizleme --}}
+    
                 <img x-show="previewUrl"
                      :src="previewUrl" 
                      alt="Avatar" 
@@ -35,7 +33,7 @@
                      :class="{'opacity-50': isUploading}"
                      style="display: none;"> 
 
-                {{-- Varsayılan İkon (Resim Yoksa) --}}
+           
                 <div x-show="!previewUrl" 
                     class="w-full h-full rounded-full bg-gray-800 border-4 border-gray-700 
                            flex items-center justify-center 
@@ -43,13 +41,12 @@
                     :class="{'opacity-50': isUploading}">
                     <i class="fa-solid fa-circle-user text-gray-400 text-[130px] md:text-[165px]"></i>
                 </div>
-                
-                {{-- Yükleniyor Spinner --}}
+      
                 <div x-show="isUploading" class="absolute inset-0 flex items-center justify-center z-10" style="display: none;">
                     <i class="fas fa-spinner fa-spin text-white text-3xl"></i>
                 </div>
 
-                {{-- Kamera İkonu (Hover) --}}
+        
                 <label for="avatarUpload" 
                        class="absolute inset-0 w-full h-full rounded-full bg-black bg-opacity-40
                               flex items-center justify-center text-white text-3xl
@@ -58,7 +55,7 @@
                 </label>
             </div>
 
-            {{-- Kullanıcı Bilgileri ve İstatistikler --}}
+        
             <div class="flex-grow text-center md:text-left">
                 <h1 class="text-3xl md:text-4xl font-extrabold leading-none text-gray-100">
                     {{ $user->name ?? "Kullanıcı Adı" }}
@@ -67,7 +64,7 @@
                     {{ $user->email ?? "" }}
                 </p>
                 
-                {{-- İstatistikler --}}
+           
                 <div class="flex justify-center md:justify-start gap-6 md:gap-8 mt-4 pt-4 border-t border-gray-700/50">
                     <div class="text-center">
                         <span class="block text-3xl font-bold text-blue-400">{{ $myQuizzos->count() }}</span> 
@@ -86,14 +83,13 @@
         </div>
     </div>
 
-    {{-- 2. BÖLÜM: TABLI İÇERİK (Quizzolarım & Sınav Kağıtlarım) --}}
-    {{-- Burada padding değerlerini üstteki div ile uyumlu yaptım (px-4 md:px-12) --}}
+
     <div x-data="{ activeTab: 'quizzes' }" class="px-4 md:px-12 mt-2 pb-12">
 
-        {{-- TAB BUTONLARI --}}
+   
         <div class="flex items-center gap-8 border-b border-gray-700 mb-6">
             
-            {{-- Quiz Tab Butonu --}}
+     
             <button @click="activeTab = 'quizzes'" 
                     class="pb-3 text-lg md:text-xl font-semibold transition-all duration-300 relative"
                     :class="activeTab === 'quizzes' ? 'text-blue-400' : 'text-gray-400 hover:text-gray-200'">
@@ -102,7 +98,7 @@
                         :class="activeTab === 'quizzes' ? 'scale-x-100' : 'scale-x-0'"></div>
             </button>
 
-            {{-- Sınavlar Tab Butonu --}}
+      
             <button @click="activeTab = 'exams'" 
                     class="pb-3 text-lg md:text-xl font-semibold transition-all duration-300 relative"
                     :class="activeTab === 'exams' ? 'text-blue-400' : 'text-gray-400 hover:text-gray-200'">
@@ -112,7 +108,7 @@
             </button>
         </div>
 
-        {{-- A) QUIZ LISTESI --}}
+     
         <div x-show="activeTab === 'quizzes'" 
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 translate-y-2"
@@ -131,7 +127,6 @@
                                 <p class="text-gray-400 text-sm mt-1 flex items-center gap-2">
                                     <i class="fa-solid fa-layer-group text-xs"></i> {{ $quiz->number_of_questions }} Soru
                                     <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
-                                    {{-- BURAYA DİKKAT: ->value ekledim --}}
                                     <span class="{{ $quiz->difficulty->value == 'hard' ? 'text-red-400' : ($quiz->difficulty->value == 'medium' ? 'text-yellow-400' : 'text-green-400') }}">
                                         {{ ucfirst($quiz->difficulty->value) }}
                                     </span>
@@ -152,7 +147,6 @@
             @endif
         </div>
 
-        {{-- B) SINAV KAĞITLARI LISTESI --}}
         <div x-show="activeTab === 'exams'" style="display: none;"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 translate-y-2"

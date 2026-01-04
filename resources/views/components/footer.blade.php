@@ -11,7 +11,6 @@
                     Bilgini test et, sınırlarını zorla. Kendi quizlerini oluştur veya topluluğun hazırladığı içerikleri keşfet.
                 </p>
                 <div class="flex gap-4 pt-2">
-                    {{-- Sosyal Medya İkonları (Placeholder) --}}
                     <a href="#" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 hover:bg-[#41825e] hover:text-white transition-all">
                         <i class="fa-brands fa-twitter"></i>
                     </a>

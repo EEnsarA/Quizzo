@@ -6,13 +6,11 @@
      style="display: none;">
     
     <div class="flex flex-col items-center gap-4">
-        {{-- Dönen Daire (Circular Progress) --}}
         <div class="relative w-16 h-16">
             <div class="absolute inset-0 border-4 border-gray-600 rounded-full opacity-25"></div>
             <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
         </div>
         
-        {{-- Yanıp Sönen Yazı --}}
         <span class="text-white font-bold tracking-wider animate-pulse">İŞLEM YAPILIYOR...</span>
     </div>
 </div>

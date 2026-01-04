@@ -11,10 +11,9 @@
     }"
     @notify.window="add($event.detail.message, $event.detail.type)"
     class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none"> 
-    {{-- Konumu BOTTOM-RIGHT yaptık, gap ekledik --}}
+   
 
     <template x-for="note in notifications" :key="note.id">
-        {{-- Animasyonlar: Aşağıdan yukarı ve sağdan giriş --}}
         <div x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 translate-y-2 translate-x-2"
              x-transition:enter-end="opacity-100 translate-y-0 translate-x-0"
@@ -41,19 +40,18 @@
                     }"></i>
                 </div>
 
-                {{-- Mesaj Alanı --}}
                 <div class="flex-1">
                     <h3 class="font-bold text-sm mb-0.5 uppercase tracking-wider opacity-70" x-text="note.type === 'success' ? 'Başarılı' : (note.type === 'error' ? 'Hata' : 'Bilgi')"></h3>
                     <p class="text-sm font-medium leading-relaxed opacity-95" x-text="note.message"></p>
                 </div>
 
-                {{-- Kapatma Butonu --}}
+       
                 <button @click="remove(note.id)" class="flex-shrink-0 text-gray-400 hover:text-white transition-colors">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            {{-- Süre Çubuğu (Opsiyonel: Görsellik katar) --}}
+
             <div class="h-1 w-full bg-gray-700/50">
                 <div class="h-full w-full origin-left animate-[shrink_4s_linear_forwards]"
                      :class="{
@@ -68,7 +66,6 @@
     </template>
 </div>
 
-{{-- Süre çubuğu animasyonu için CSS (Eğer Tailwind config'de yoksa buraya ekleyebilirsin) --}}
 <style>
 @keyframes shrink {
     from { transform: scaleX(1); }

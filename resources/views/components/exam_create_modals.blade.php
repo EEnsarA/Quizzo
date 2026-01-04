@@ -1,24 +1,21 @@
 
 
-{{-- 4.Modals --}}
-
-{{-- AI (Küçük Modal) --}}
 <div x-show="aiModalOpen" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" style="display: none;" x-transition.opacity>
     <div class="bg-[#252526] w-96 rounded-xl shadow-2xl border border-gray-700 p-5" @click.away="aiModalOpen = false">
         <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2"><i class="fa-solid fa-robot text-indigo-400"></i> Bu Soruyu Doldur</h3>
         
         <div class="space-y-3">
-            {{-- 1. Konu --}}
+          
             <div>
                 <label class="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Konu Başlığı</label>
                 <input type="text" x-model="aiPrompt" class="w-full bg-[#1e1e1e] border border-gray-600 rounded p-2 text-xs text-white focus:border-indigo-500 outline-none">
             </div>
-            {{-- 2. Metin --}}
+      
             <div>
                 <label class="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Metin Yapıştır</label>
                 <textarea x-model="aiContext" rows="2" class="w-full bg-[#1e1e1e] border border-gray-600 rounded p-2 text-xs text-white focus:border-indigo-500 outline-none resize-none"></textarea>
             </div>
-            {{-- 3. Dosya --}}
+        
             <div>
                 <label class="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Dosya</label>
                 <label class="flex items-center gap-2 w-full bg-[#1e1e1e] border border-dashed border-gray-600 rounded p-2 cursor-pointer hover:bg-[#2d2d30]">
@@ -27,7 +24,7 @@
                     <input type="file" class="hidden" @change="setFile($event)">
                 </label>
             </div>
-            {{-- 4. Zorluk --}}
+         
             <div>
                 <label class="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Zorluk</label>
                 <select x-model="aiDifficulty" class="w-full bg-[#1e1e1e] border border-gray-600 rounded p-2 text-xs text-white outline-none cursor-pointer">
@@ -36,14 +33,14 @@
             </div>
         </div>
 
-        <button @click="generateAiContent()" :disabled="aiLoading"      {{-- Tıklayınca sürüklemeyi engeller --}}
+        <button @click="generateAiContent()" :disabled="aiLoading"     
         class="w-full no-drag bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 mt-4 rounded text-xs flex items-center justify-center gap-2 transition disabled:opacity-50">
             <span x-show="!aiLoading">Oluştur</span><span x-show="aiLoading"><i class="fa-solid fa-circle-notch animate-spin"></i></span>
         </button>
     </div>
 </div>
 
-{{-- MODAL 2: AI (Büyük Modal) --}}
+
 <div x-show="aiBatchModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" style="display: none;" x-transition.opacity>
     <div class="bg-[#252526] w-[600px] rounded-xl shadow-2xl border border-gray-700 overflow-hidden" @click.away="aiBatchModalOpen = false">
         <div class="bg-[#1e1e1e] p-4 border-b border-gray-700 flex justify-between items-center">
@@ -51,7 +48,7 @@
             <button @click="aiBatchModalOpen = false" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="p-6 space-y-5">
-            {{-- KAYNAKLAR --}}
+           
             <div class="space-y-3">
                 <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Konu Başlığı</label><input type="text" x-model="aiPrompt" class="w-full bg-[#1e1e1e] border border-gray-600 rounded-lg p-2 text-sm text-white focus:border-blue-500 outline-none"></div>
                 <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Kaynak Metin</label><textarea x-model="aiContext" rows="3" class="w-full bg-[#1e1e1e] border border-gray-600 rounded-lg p-2 text-sm text-white focus:border-blue-500 outline-none resize-none"></textarea></div>
@@ -67,7 +64,7 @@
             
             <hr class="border-gray-700">
 
-            {{-- KURALLAR --}}
+          
             <div>
                 <div class="flex justify-between items-center mb-3"><label class="text-xs font-bold text-gray-400 uppercase">Üretim Kuralları</label><button @click="addAiRequest()" class="text-xs text-blue-400 font-bold hover:underline">+ Kural Ekle</button></div>
                 <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
