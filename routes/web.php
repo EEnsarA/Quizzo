@@ -47,10 +47,10 @@ Route::middleware(['auth'])->group(function () {
 
     // --- EXAM CREATOR ---
     Route::post('/exam/save', [ExamController::class, 'store'])->name('exam.save');
-
+    Route::post('/exam/ai-batch-generate', [ExamController::class, 'generate_batch_questions'])->name('exam.ai_batch');
 
     Route::post("/create_quiz/ai-generate", [QuizController::class, "ai_generate"])->name("quiz.ai_generate");
-
+    Route::post('/exam/{id}/toggle-public', [ExamController::class, 'togglePublic'])->name('exam.toggle-public');
     // --- Kütüphane & Silme İşlemleri ---
     Route::delete("/quiz/{quiz}/delete", [QuizController::class, "delete_quiz"])->name("quiz.delete");
     Route::get("/library", [LibraryController::class, "show_library"])->name("library.show");

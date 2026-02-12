@@ -47,7 +47,7 @@
         <template x-if="mode === 'login'">
             <div>          
                 <h2 class="text-xl font-bold mb-6 text-gray-200 flex items-center gap-2">
-                    <i class="fa-solid fa-right-to-bracket text-[#41825e]"></i>
+                    <i class="fa-solid fa-right-to-bracket text-[#41825e]"></i>Sign In
                 </h2>
                 
                 <form method="POST" action="{{ route('login') }}"> 

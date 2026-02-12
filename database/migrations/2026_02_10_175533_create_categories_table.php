@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('exam_papers', function (Blueprint $table) {
+        Schema::create('categories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('title')->default('Yeni Sınav Kağıdı');
-            $table->jsonb('canvas_data');
-            $table->integer('page_count')->default(1);
-            $table->boolean('is_public')->default(false);
+            $table->string('name'); // Kategori Adı
+            $table->string('slug')->unique(); // URL dostu isim
+            $table->string('icon')->nullable(); // İkon class'ı
             $table->timestamps();
         });
     }
@@ -27,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('exam_papers');
+        Schema::dropIfExists('categories');
     }
 };

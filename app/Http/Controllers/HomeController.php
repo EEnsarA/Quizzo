@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
 
         //* pluck() => get() gibi ancak parametre olarak belirtilen sütunu döner

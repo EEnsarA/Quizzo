@@ -461,13 +461,22 @@ Alpine.data("examCanvas", (props = {}) => ({
 
 
     aiModalOpen: false,
+    aiOptionCount: 5,
     activeAiItem: null,
     aiBatchModalOpen: false,
 
 
-    aiRequests: [{ type: 'multiple_choice', count: 1, difficulty: 'medium', option_count: 4 }],
+    aiRequests: [],
     aiPoolGroups: [],
     aiLoading: false,
+
+    isLoading: false,
+    pendingAction: null, // İndir, Ön İzle veya Kütüphane eylemini hafızada tutmak için
+    tempCategories: [],
+    tempDescription: '',
+    initialCategories: props.initialCategories || [], // Blade'den gelen (Config değil props kullanıyoruz)
+    initialDescription: props.initialDescription || '',
+    allCategories: props.allCategories || [],
 
 
     get currentPageElements() {
@@ -483,6 +492,12 @@ Alpine.data("examCanvas", (props = {}) => ({
     init() {
 
         this.elements = this.elements.filter(el => el.id && el.page);
+        this.tempTitle = this.examTitle;
+        this.tempDescription = this.initialDescription;
+        // Gelen kategori objelerini [1, 3] gibi ID listesine çevir
+        if (Array.isArray(this.initialCategories)) {
+            this.tempCategories = this.initialCategories.map(c => c.id);
+        }
 
         if (this.elements.length > 0) {
             const maxPage = Math.max(...this.elements.map(el => el.page || 1));
@@ -576,32 +591,57 @@ Alpine.data("examCanvas", (props = {}) => ({
     handleDrop(event) {
         const paper = document.getElementById('paper');
         const rect = paper.getBoundingClientRect();
-
         let x = event.clientX - rect.left;
         let y = event.clientY - rect.top;
 
-        const paperWidth = paper.offsetWidth;
-        const paperHeight = paper.offsetHeight;
-
-        const defaultW = 200;
-        const defaultH = 50;
-
-        if (x < 0) x = 0;
-        if (y < 0) y = 0;
-        if (x + defaultW > paperWidth) x = paperWidth - defaultW;
-        if (y + defaultH > paperHeight) y = paperHeight - defaultH;
+        // Varsayılan genişlik (Yükseklik önemsiz, autoResize halledecek)
+        let currentWidth = 700;
 
         if (this.draggingType) {
+
+            // 1. AI Verisi Varsa İşle
+            if (this.draggingPayload) {
+                // Numara güncelle
+                const existingCount = this.elements.filter(e => e.type === this.draggingType).length;
+                this.draggingPayload.number = (existingCount + 1) + '.';
+
+                // Şık temizliği
+                if (this.draggingPayload.options && Array.isArray(this.draggingPayload.options)) {
+                    this.draggingPayload.options = this.draggingPayload.options.map(opt => opt.replace(/^[A-Z0-9][).]\s*/, ''));
+                }
+                // D/Y Formatı
+                if (this.draggingType === 'true_false') {
+                    this.draggingPayload.format = 'D / Y';
+                }
+            }
+
+            // 2. Sınır Kontrolleri
+            const paperWidth = paper.offsetWidth;
+            const paperHeight = paper.offsetHeight; // (Height kontrolü çok kasmamıza gerek yok artık)
+
+            if (x < 0) x = 0; if (y < 0) y = 0;
+            if (x + currentWidth > paperWidth) x = paperWidth - currentWidth;
+
+            // 3. Ekle
             this.addItem(this.draggingType, x, y, this.draggingPayload);
 
+            // 4. Boyutu ve Genişliği Ayarla (Yükseklik autoResize ile düzelecek ama varsayılan verelim)
+            const lastItem = this.elements[this.elements.length - 1];
+            if (lastItem) {
+                lastItem.w = currentWidth;
+                lastItem.h = 100; // Geçici değer, render olunca düzelecek
+            }
+
+            // 5. Havuzdan Sil
             const groupIndex = event.dataTransfer.getData('groupIndex');
-            if (groupIndex !== '' && this.aiPoolGroups[groupIndex]) {
+            if (groupIndex !== '' && this.aiPoolGroups[groupIndex] && this.aiPoolGroups[groupIndex].questions) {
                 this.aiPoolGroups[groupIndex].questions.shift();
                 this.aiPoolGroups[groupIndex].count--;
                 if (this.aiPoolGroups[groupIndex].count <= 0) {
                     this.aiPoolGroups.splice(groupIndex, 1);
                 }
             }
+
             this.draggingType = null;
             this.draggingPayload = null;
         }
@@ -771,70 +811,226 @@ Alpine.data("examCanvas", (props = {}) => ({
     removeAiRequest(index) { this.aiRequests.splice(index, 1); },
 
 
-    generateBatchAi() {
+    async generateBatchAi() {
+        // Validasyon
+        if (this.aiRequests.length === 0) {
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'En az bir kural eklemelisiniz.', type: 'warning' } }));
+            return;
+        }
+        if (!this.aiPrompt && !this.aiContext && !this.aiFile) {
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Lütfen bir konu, metin veya dosya girin.', type: 'warning' } }));
+            return;
+        }
+
         this.aiLoading = true;
-        setTimeout(() => {
-            const sourceSummary = (this.aiPrompt ? `Konu: "${this.aiPrompt}". ` : '') + (this.aiContext ? `Metin Verildi. ` : '') + (this.aiFile ? `Dosya: ${this.aiFile.name}` : '');
-            this.aiRequests.forEach(req => {
-                let generatedQuestions = [];
-                let typeName = '';
-                if (req.type === 'multiple_choice') typeName = 'Çoktan Seçmeli';
-                else if (req.type === 'open_ended') typeName = 'Klasik';
-                else if (req.type === 'true_false') typeName = 'Doğru/Yanlış';
-                else if (req.type === 'fill_in_blanks') typeName = 'Boşluk Doldurma';
 
-                let difficultyLabel = req.difficulty === 'easy' ? 'Kolay' : (req.difficulty === 'hard' ? 'Zor' : 'Orta');
+        let formData = new FormData();
+        formData.append('prompt', this.aiPrompt);
+        formData.append('context', this.aiContext);
+        if (this.aiFile) formData.append('file', this.aiFile);
 
-                for (let i = 0; i < req.count; i++) {
-                    let mockContent = {};
-                    let points = req.difficulty === 'hard' ? '20' : '10';
+        // Kuralları JSON string olarak gönderiyoruz
+        formData.append('rules', JSON.stringify(this.aiRequests));
 
-                    if (req.type === 'multiple_choice') {
-                        let options = [];
-                        for (let o = 0; o < (req.option_count || 4); o++) options.push(`Seçenek ${String.fromCharCode(65 + o)}`);
-                        mockContent = { question: `(AI) ${sourceSummary} hakkında soru #${i + 1}?`, point: points, options: options };
-                    } else {
-                        mockContent = { question: `(AI) ${sourceSummary} sorusu #${i + 1}?`, point: points };
-                    }
-                    generatedQuestions.push(mockContent);
-                }
+        try {
 
-                const existingGroup = this.aiPoolGroups.find(g => g.type === req.type && g.difficulty === req.difficulty);
-                if (existingGroup) {
-                    existingGroup.count += parseInt(req.count);
-                    existingGroup.questions = existingGroup.questions.concat(generatedQuestions);
-                } else {
-                    this.aiPoolGroups.push({
-                        id: Date.now() + Math.random(),
-                        type: req.type,
-                        typeName: typeName,
-                        difficulty: req.difficulty,
-                        difficultyLabel: difficultyLabel,
-                        count: parseInt(req.count),
-                        questions: generatedQuestions
-                    });
+            const response = await axios.post('/exam/ai-batch-generate', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRF-TOKEN': this.token
                 }
             });
+
+            if (response.data.success && response.data.data.groups) {
+
+                // Gelen veriyi işle ve Havuza (aiPoolGroups) ekle
+                response.data.data.groups.forEach(group => {
+
+                    // --- TEMİZLİK İŞLEMİ BURADA BAŞLIYOR ---
+                    // Gelen soruları döngüye alıp tek tek temizliyoruz
+                    group.questions.forEach(q => {
+                        // 1. Soru metnini temizle (Yıldızları sil)
+                        q.question = this.cleanText(q.question);
+
+                        // 2. Şıklar varsa onları da temizle
+                        if (q.options && Array.isArray(q.options)) {
+                            q.options = q.options.map(opt => {
+                                // Önce A) B) gibi ön ekleri sil
+                                let noPrefix = opt.replace(/^[A-Z0-9][).]\s*/, '');
+                                // Sonra Yıldızları sil
+                                return this.cleanText(noPrefix);
+                            });
+                        }
+                    });
+                    // --- TEMİZLİK İŞLEMİ BİTTİ ---
+
+
+                    // Tip ismini Türkçe label'a çevir
+                    let typeLabel = 'Bilinmeyen';
+                    if (group.type === 'multiple_choice') typeLabel = 'Çoktan Seçmeli';
+                    if (group.type === 'open_ended') typeLabel = 'Klasik';
+                    if (group.type === 'true_false') typeLabel = 'Doğru/Yanlış';
+                    if (group.type === 'fill_in_blanks') typeLabel = 'Boşluk Doldurma';
+
+                    // Havuza Ekle (Artık temizlenmiş 'group.questions' ekleniyor)
+                    this.aiPoolGroups.push({
+                        id: Date.now() + Math.random(),
+                        type: group.type,
+                        typeName: typeLabel,
+                        difficulty: group.difficulty,
+                        difficultyLabel: group.difficulty.toUpperCase(),
+                        count: group.questions.length,
+                        questions: group.questions // <-- Buraya temizlenmiş hali gidiyor
+                    });
+                });
+
+                window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Sorular havuza eklendi! Sürükleyip kullanabilirsiniz.', type: 'success' } }));
+                this.aiBatchModalOpen = false;
+            }
+
+        } catch (error) {
+            console.error(error);
+            let msg = error.response?.data?.message || 'Bir hata oluştu.';
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: msg, type: 'error' } }));
+        } finally {
             this.aiLoading = false;
-            this.aiBatchModalOpen = false;
-        }, 1500);
+        }
     },
 
 
     openAiModal(item) { this.activeAiItem = item; this.aiModalOpen = true; this.aiPrompt = ''; this.aiContext = ''; this.aiFile = null; },
-    generateAiContent() {
+
+
+
+    cleanText(text) {
+        if (!text) return '';
+        let cleaned = text;
+
+        // 1. Kalın Yazıları Temizle (**Yazı** -> Yazı)
+        cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
+
+        // 2. İtalik Yazıları Temizle (*Yazı* -> Yazı)
+        // Matematiksel çarpma (3 * 5) işaretine dokunmaz.
+        cleaned = cleaned.replace(/(^|\s)\*([^\s*]+)\*(\s|$|[.,:?!])/g, '$1$2$3');
+
+        return cleaned.trim();
+    },
+
+
+    async generateAiContent() {
+        // 1. Validasyonlar
         if (!this.activeAiItem) return;
+
+        // Konu, Metin veya Dosya yoksa uyarı ver
+        if (!this.aiPrompt && !this.aiContext && !this.aiFile) {
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Lütfen bir konu, metin veya dosya girin.', type: 'warning' } }));
+            return;
+        }
+
+
         this.aiLoading = true;
-        setTimeout(() => {
-            const sourceSummary = (this.aiPrompt ? this.aiPrompt : '') + (this.aiContext ? ' + Metin' : '') + (this.aiFile ? ' + Dosya' : '');
-            const type = this.activeAiItem.type;
-            let newContent = {};
-            if (type === 'multiple_choice') newContent = { question: `(AI) ${sourceSummary} sorusu?`, point: '15', options: ['A', 'B', 'C', 'D'] };
-            else newContent = { question: `(AI) ${sourceSummary} sorusu?`, point: '10' };
-            if (Object.keys(newContent).length > 0) this.activeAiItem.content = newContent;
+
+        // 2. FormData Hazırlığı
+        let formData = new FormData();
+        formData.append('prompt', this.aiPrompt);
+        formData.append('context', this.aiContext);
+        if (this.aiFile) formData.append('file', this.aiFile);
+
+        // 3. TEK BİR KURAL OLUŞTUR (Mevcut controller yapısına uymak için)
+        // Seçili kutunun tipine göre backend'e "Bana bundan 1 tane üret" diyoruz.
+        let rule = {
+            type: this.activeAiItem.type,
+            count: 1,
+            difficulty: this.aiDifficulty
+        };
+
+        // Eğer çoktan seçmeli ise şık sayısını belirtelim (Varsayılan 5 şık)
+        if (this.activeAiItem.type === 'multiple_choice') {
+            rule.option_count = parseInt(this.aiOptionCount) || 5;
+        }
+
+        // Kuralları JSON string olarak ekle (Backend böyle bekliyor)
+        formData.append('rules', JSON.stringify([rule]));
+
+        try {
+            // 4. İSTEK GÖNDER (Mevcut Controller Rotası)
+            const response = await axios.post('/exam/ai-batch-generate', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRF-TOKEN': this.token
+                }
+            });
+
+            // 5. CEVABI İŞLE
+            if (response.data.success &&
+                response.data.data.groups &&
+                response.data.data.groups.length > 0 &&
+                response.data.data.groups[0].questions.length > 0) {
+
+                // Backend'den gelen ilk (ve tek) soruyu al
+                const generatedData = response.data.data.groups[0].questions[0];
+                const item = this.activeAiItem;
+
+                // --- İÇERİĞİ GÜNCELLE ---
+
+                // Soru Metni
+                item.content.question = this.cleanText(generatedData.question);
+
+                // Puan (Backend gönderiyorsa al, yoksa eskisi kalsın)
+                if (generatedData.point) item.content.point = generatedData.point;
+
+                // Çoktan Seçmeli Şıkları
+                if (item.type === 'multiple_choice' && Array.isArray(generatedData.options)) {
+                    item.content.options = generatedData.options.map(opt => {
+                        // 1. A) B) kısmını sil
+                        let noPrefix = opt.replace(/^[A-Z0-9][).]\s*/, '');
+                        // 2. Yıldızları (*) sil ve geri döndür
+                        return this.cleanText(noPrefix);
+                    });
+                    // Buraya 'return' koymuyoruz! Kod akmaya devam etmeli.
+                }
+
+                // --- BİTİŞ İŞLEMLERİ ---
+
+                // Modalı Kapat
+                this.aiModalOpen = false;
+
+                // Bildirim Ver
+                window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Soru başarıyla güncellendi!', type: 'success' } }));
+
+                // Inputları Temizle
+                this.aiPrompt = '';
+                this.aiContext = '';
+                this.aiFile = null;
+                // Dosya inputunu da HTML'den resetle
+                const fileInput = document.querySelector('input[type="file"]');
+                if (fileInput) fileInput.value = '';
+                // *** KRİTİK DÜZELTME BURADA ***
+                this.$nextTick(() => {
+                    const container = document.getElementById(item.id);
+                    if (container) {
+                        // 1. Kutunun içindeki TÜM metin alanlarını (Soru + Şıklar) bul
+                        const textareas = container.querySelectorAll('textarea');
+
+                        // 2. Her bir textarea için autoResize fonksiyonunu çalıştır
+                        // Bu sayede hem metin alanları uzar, hem de en sonunda kutu uzar.
+                        textareas.forEach(t => {
+                            this.autoResize({ target: t }, item);
+                        });
+                    }
+                });
+
+            } else {
+                throw new Error('AI içerik üretemedi veya format hatalı.');
+            }
+
+        } catch (error) {
+            console.error("AI Hatası:", error);
+            let msg = error.response?.data?.message || 'AI servisinde hata oluştu.';
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: msg, type: 'error' } }));
+        } finally {
             this.aiLoading = false;
-            this.aiModalOpen = false;
-        }, 1000);
+        }
     },
 
 
@@ -896,50 +1092,91 @@ Alpine.data("examCanvas", (props = {}) => ({
         }
     },
 
+
+
+    saveAndAction(actionType) {
+        this.pendingAction = actionType; // Eylemi hafızaya al (örn: 'download')
+
+        // Mevcut verileri modal'a taşı
+        this.tempTitle = this.examTitle;
+
+        // Modalı Göster
+        this.showTitleModal = true;
+    },
+
+
     saveTitleAndContinue() {
         if (!this.tempTitle || this.tempTitle.trim() === '') {
             window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Lütfen geçerli bir isim giriniz!', type: 'warning' } }));
             return;
         }
+
+        // Değişkenleri güncelle
         this.examTitle = this.tempTitle;
+
+        // Modalı kapat
         this.showTitleModal = false;
-        this.saveExam();
+
+        // GERÇEK KAYIT FONKSİYONUNU ÇAĞIR
+        this.saveExamToDatabase();
     },
 
-    async saveAndAction(actionType) {
+    startResize(event, item) {
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const startWidth = parseInt(item.w);
+        const startHeight = parseInt(item.h);
 
-        if (!this.examId && (!this.examTitle || this.examTitle === 'Yeni Sınav Kağıdı' || this.examTitle.trim() === '')) {
-            this.showTitleModal = true;
-            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Önce sınava bir isim vermelisin.', type: 'info' } }));
-            return;
-        }
+        const onMouseMove = (e) => {
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            // Minimum boyut sınırı (50x30)
+            item.w = Math.max(50, startWidth + dx);
+            item.h = Math.max(30, startHeight + dy);
+        };
 
-        if (actionType === 'library') {
-            if (!confirm(`"${this.examTitle}" olarak kaydedilecek. Emin misin?`)) return;
-        }
+        const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    },
+
+    // 3. ADIM: Veritabanı İşlemi (Eski saveAndAction kodun buraya taşındı ve güncellendi)
+    async saveExamToDatabase() {
+        let actionType = this.pendingAction; // Hafızadaki eylemi al
 
         let actionMessage = 'İşlem yapılıyor...';
         if (actionType === 'download') actionMessage = 'PDF İndiriliyor...';
         else if (actionType === 'preview') actionMessage = 'Ön İzleme Hazırlanıyor...';
         else if (actionType === 'library') actionMessage = 'Kütüphaneye Dönülüyor...';
 
+        this.isLoading = true;
         window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
         window.dispatchEvent(new CustomEvent('notify', { detail: { message: `Kaydediliyor ve ${actionMessage}`, type: 'info' } }));
 
         try {
             const url = this.examId ? `/exam/update/${this.examId}` : '/exam/save';
+
+            // --- GÜNCELLENEN PAYLOAD (Kategori ve Açıklama eklendi) ---
             const payload = {
                 title: this.examTitle,
                 elements: this.elements,
-                page_count: this.totalPages || 1
+                page_count: this.totalPages || 1,
+                // Yeni alanlar:
+                categories: this.tempCategories,
+                description: this.tempDescription,
+                is_public: false // Editörden kaydederken hep false
             };
+            // ----------------------------------------------------------
 
             const response = await axios.post(url, payload, {
                 headers: { 'X-CSRF-TOKEN': this.token, 'Content-Type': 'application/json' }
             });
 
             if (response.data.success) {
-
 
                 if (!this.examId && response.data.id) {
                     this.examId = response.data.id;
@@ -948,7 +1185,9 @@ Alpine.data("examCanvas", (props = {}) => ({
 
                 this.isSaved = true;
 
-                //  PDF İNDİR
+                // --- AKSİYONLAR ---
+
+                // PDF İNDİR
                 if (actionType === 'download') {
                     const link = document.createElement('a');
                     link.href = `/exam/${this.examId}/download`;
@@ -968,12 +1207,18 @@ Alpine.data("examCanvas", (props = {}) => ({
                     window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Ön izleme açıldı!', type: 'success' } }));
                 }
 
+                // KÜTÜPHANE
                 else if (actionType === 'library') {
                     window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Kütüphaneye gidiliyor...', type: 'success' } }));
                     setTimeout(() => {
                         window.location.href = "/library";
                     }, 1000);
                     return;
+                }
+
+                // HİÇBİR ŞEY YOKSA (Sadece Kaydet dediyse)
+                else {
+                    window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Başarıyla Kaydedildi!', type: 'success' } }));
                 }
             }
 
@@ -986,8 +1231,90 @@ Alpine.data("examCanvas", (props = {}) => ({
             if (actionType !== 'library') {
                 window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
             }
+            this.isLoading = false;
+            this.pendingAction = null; // Aksiyonu sıfırla
         }
     },
+
+
+    returnToPool(id) {
+        // 1. Ögeyi bul
+        const item = this.elements.find(el => el.id === id);
+        if (!item) return;
+
+        // 2. İKONLARIN ÇALIŞMASI İÇİN TİP HARİTASI (HTML ile birebir aynı olmalı)
+        const typeMap = {
+            'multiple_choice': 'Çoktan Seçmeli',
+            'open_ended': 'Klasik',
+            'fill_in_blanks': 'Boşluk Doldurma',
+            'true_false': 'Doğru/Yanlış'
+        };
+
+        // Türkçe ismini al (İkonlar buna göre çıkıyor)
+        const typeLabel = typeMap[item.type] || 'Bilinmeyen';
+
+        // 3. Havuzda bu tipte bir grup var mı?
+        let group = this.aiPoolGroups.find(g => g.type === item.type);
+
+        // 4. Grup yoksa, ORİJİNAL YAPIYA UYGUN oluştur
+        if (!group) {
+            group = {
+                id: Date.now(),
+                type: item.type,          // Örn: 'multiple_choice'
+                typeName: typeLabel,      // Örn: 'Çoktan Seçmeli' (İkon için şart!)
+                difficulty: 'medium',     // Varsayılan Sarı renk olsun
+                difficultyLabel: 'GERİ',  // Etikette 'GERİ' yazsın
+                count: 0,
+                questions: []
+            };
+            this.aiPoolGroups.push(group);
+        }
+
+        // 5. İçeriği temizle (Canvas koordinatlarını at, sadece soruyu al)
+        const rawContent = JSON.parse(JSON.stringify(item.content));
+
+        // (İsteğe bağlı) Soru numarasını temizle ki havuzda "5. Soru..." gibi durmasın
+        if (rawContent.number) rawContent.number = '';
+
+        // 6. Gruba ekle (En başa)
+        group.questions.unshift(rawContent);
+        group.count++;
+
+        // 7. Canvas'tan sil
+        this.remove(id);
+
+        window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Soru havuza geri taşındı.', type: 'info' } }));
+    },
+
+    autoResize(event, item) {
+        // Sadece yazı yazılan alanı (textarea/input) bul
+        const el = event.target;
+
+        // Eğer bu bir metin kutusuysa, kendi içeriğine göre uzamasını sağla
+        if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {
+            el.style.height = 'auto';       // Önce boyu sıfırla (küçülme ihtimaline karşı)
+            el.style.height = el.scrollHeight + 'px'; // Sonra içeriğe eşitle
+        }
+
+        // DİKKAT: Burada item.h'yi güncellemene gerek YOK.
+        // Çünkü HTML tarafında "height: auto" dedik, kutu kendiliğinden büyüyecek.
+    },
+
+    toggleCategory(id) {
+        if (this.tempCategories.includes(id)) {
+            // Varsa çıkar
+            this.tempCategories = this.tempCategories.filter(c => c !== id);
+        } else {
+            // Yoksa ekle
+            this.tempCategories.push(id);
+        }
+    },
+
+    getCategoryName(id) {
+        const cat = this.allCategories.find(c => c.id == id);
+        return cat ? cat.name : 'Bilinmeyen';
+    },
+
 
     saveToConsole() { console.log(JSON.stringify(this.elements)); window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Kayıt Başarılı!', type: 'success' } }));; }
 }));

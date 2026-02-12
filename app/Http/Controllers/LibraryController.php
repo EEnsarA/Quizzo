@@ -35,7 +35,10 @@ class LibraryController extends Controller
         });
 
         // exams
-        $examPapers = ExamPaper::where('user_id', $user->id)->latest()->get();
+        $examPapers = ExamPaper::with('categories')
+                    ->where('user_id', $user->id)
+                    ->latest()
+                    ->get();
 
 
         return view("pages.library", compact("myQuizzos", "libraryQuizzos", "examPapers"));

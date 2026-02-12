@@ -8,10 +8,11 @@ use App\Models\Quiz;
 use App\Models\User;
 use App\Models\QuizResult;
 use App\Models\UserLibrary;
-use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Prompts\Output\ConsoleOutput;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class QuizController extends Controller
 {
@@ -281,16 +282,24 @@ class QuizController extends Controller
 
     public function ai_generate(Request $request)
     {
+        set_time_limit(180);
+        // 1. Yetki Kontrolü
         if (!Auth::check()) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Oturum süreniz dolmuş.'], 401);
+            }
             return redirect()->route("home");
         }
 
-        $client = new Client();
+        $apiKey = env('GEMINI_API_KEY');
 
+        // 2. Validasyon
         $request->validate([
             "title" => "required|string|max:255",
             "img_url" => "nullable|image|mimes:jpg,jpeg,png|max:2048",
-            "subject" => "required|string|max:255",
+            // PDF, DOCX, TXT kabul ediyoruz (Max 10MB)
+            "source_file" => "nullable|file|mimes:pdf,docx,txt|max:10240",
+            "subject" => "nullable|string|max:255",
             "description" => "nullable|string|max:500",
             "number_of_questions" => "required|integer|min:4|max:20",
             "number_of_options" => "required|integer|min:2|max:6",
@@ -299,83 +308,155 @@ class QuizController extends Controller
             "wrong_to_correct_ratio" => "nullable|integer|min:0|max:10",
         ]);
 
+        // 3. Dosya Yükleme (Google File API)
+        $fileUri = null;
+        if ($request->hasFile('source_file')) {
+            try {
+                $file = $request->file('source_file');
+                $mimeType = $file->getMimeType();
+                $fileSize = $file->getSize();
+                $fileData = file_get_contents($file->getPathname());
 
-        $prompt = "Bana \"{$request->title}\" başlığında , \" {$request->subject}\" konusunda ,\"{$request->description}\" buna uygun ,{$request->number_of_questions} adet çoktan seçmeli soru oluştur .
-        Her soru {$request->number_of_options} seçenekli olacak ve zorluk seviyesi \"{$request->difficulty}\" olacak.
-        Çıktı formatı KESİNLİKLE ve SADECE aşağıdaki JSON yapısına uymalıdır. JSON bloğu dışında HİÇBİR ek metin, açıklama veya başlık (örneğin 'İşte sorularınız:' gibi) **EKLEME**:
+                // A) Upload Başlat ve Veriyi Gönder
+                $uploadResponse = Http::withHeaders([
+                    'X-Goog-Upload-Protocol' => 'raw',
+                    'X-Goog-Upload-Command' => 'start, upload, finalize',
+                    'X-Goog-Upload-Header-Content-Length' => $fileSize,
+                    'X-Goog-Upload-Header-Content-Type' => $mimeType,
+                    'Content-Type' => $mimeType,
+                ])->withBody($fileData, $mimeType)
+                    ->post("https://generativelanguage.googleapis.com/upload/v1beta/files?key={$apiKey}");
 
-        {
-        \"questions\": [
-            {
-            \"title\": \"Soru Başlığı\",
-            \"content\": \"Soru metni...\",
-            \"points\": 1,
-            \"answers\": [
-                { \"answer_content\": \"Seçenek A\", \"is_correct\": false },
-                { \"answer_content\": \"Seçenek B\", \"is_correct\": true },
-                { \"answer_content\": \"Seçenek C\", \"is_correct\": false },
-                { \"answer_content\": \"Seçenek D\", \"is_correct\": false }
-            ]
+                if ($uploadResponse->failed()) {
+                    throw new \Exception("Google Upload Hatası: " . $uploadResponse->body());
+                }
+
+                // B) Dosya Adresini (URI) Al
+                $fileUri = $uploadResponse->json()['file']['uri'] ?? null;
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'message' => 'Dosya işleme hatası: ' . $e->getMessage()], 500);
             }
-        ]
-        }";
-
-        $response = $client->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . env('GEMINI_API_KEY'), [
-            'headers' => [
-                'Content-Type' => 'application/json',
-            ],
-            'json' => [
-                'contents' => [[
-                    'parts' => [['text' => $prompt]]
-                ]]
-            ],
-        ]);
-
-        $data = json_decode($response->getBody(), true);
-
-        $outputText = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-
-        // Konsola yazmak için
-        $out = new ConsoleOutput();
-        $out->writeln("🔹 AI Raw Output:");
-        $out->writeln($outputText ?? '--- boş geldi ---');
-
-        $cleanText = preg_replace('/^```json|```$/m', '', trim($outputText));
-        $cleanText = preg_replace('/```[a-z]*\n?/', '', $cleanText);
-        $cleanText = str_replace(["\r", "\n"], ' ', $cleanText);
-
-        $generatedQuestions = json_decode($cleanText, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            dd('JSON Hatası:', json_last_error_msg(), $cleanText);
         }
 
-        #img için store işlemleri
+        // 4. Prompt Hazırlama (Sıkı Kurallar)
+        $jsonSchema = '{
+            "questions": [
+                {
+                "title": "Soru Başlığı",
+                "content": "Soru metni...",
+                "points": 5,
+                "answers": [
+                    { "answer_content": "Seçenek A", "is_correct": false },
+                    { "answer_content": "Seçenek B", "is_correct": true }
+                ]
+                }
+            ]
+        }';
+
+        // Sistem Talimatı: Dosya olsa bile kullanıcının konusuna sadık kalmasını sağlar.
+        $systemInstruction = "Sen uzman bir sınav hazırlayıcısısın. ";
+
+        if ($fileUri) {
+            $systemInstruction .= "Sana verdiğim DÖKÜMANI kaynak olarak kullanacaksın. ";
+            $systemInstruction .= "ÖNEMLİ: Dökümanın tamamından rastgele soru sorma. ";
+            $systemInstruction .= "Dökümanın içinden SADECE aşağıda belirttiğim 'Konu' ve 'Açıklama' ile alakalı kısımları bul, analiz et ve oradan soru türet. ";
+        } else {
+            $systemInstruction .= "Aşağıdaki konu başlıklarına göre özgün ve öğretici sorular üret. ";
+        }
+
+        $userPrompt = "
+        --- KURALLAR ---
+        1. KONU ODAĞI: \"{$request->title}\" - \"{$request->subject}\".
+        2. DETAY/BAĞLAM: \"{$request->description}\". (Sorular bu bağlama uygun olmalı).
+        3. ZORLUK: \"{$request->difficulty}\" (Lütfen bu seviyeye tam uy).
+        4. ADET: Tam olarak {$request->number_of_questions} soru.
+        5. SEÇENEK: Her soruda {$request->number_of_options} seçenek.
+        
+        ÇIKTI FORMATI: Sadece ve sadece aşağıdaki JSON yapısında çıktı ver. Başka hiçbir metin, başlık veya açıklama yazma.";
+
+        // 5. Payload (İçerik) Oluşturma
+        $parts = [];
+
+        // Dosya varsa ekle
+        if ($fileUri) {
+            $parts[] = [
+                'file_data' => [
+                    'mime_type' => $request->file('source_file')->getMimeType(),
+                    'file_uri' => $fileUri
+                ]
+            ];
+        }
+
+        // Metin promptunu ekle
+        $parts[] = [
+            'text' => $systemInstruction . "\n" . $userPrompt . "\n\nJSON ŞEMASI:\n" . $jsonSchema
+        ];
+
+        // 6. Gemini 2.5 API İsteği
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json'
+            ])
+                ->timeout(180)
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", [
+                    'contents' => [
+                        ['parts' => $parts]
+                    ],
+                    'generationConfig' => [
+                        'responseMimeType' => 'application/json', // JSON Garantisi
+                        'temperature' => 0.7
+                    ]
+                ]);
+
+            $data = $response->json();
+
+            // Yanıt Kontrolü
+            if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                Log::error("AI Boş Döndü", ['response' => $data]);
+                throw new \Exception("AI yanıt üretemedi.");
+            }
+
+            $jsonString = $data['candidates'][0]['content']['parts'][0]['text'];
+
+            // Temizlik ve Parse
+            $cleanText = preg_replace('/^```json|```$/m', '', trim($jsonString));
+            $generatedQuestions = json_decode($cleanText, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \Exception("JSON Parse Hatası");
+            }
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'AI Hatası: ' . $e->getMessage()], 500);
+        }
+
+        // 7. Veritabanı Kayıt İşlemleri
+
+        // Kapak Resmi Kaydı
         $path = null;
         if ($request->hasFile("img_url")) {
-            # benzersiz isim 
             $filename = uniqid() . "-" . $request->file("img_url")->getClientOriginalName();
-            # storage/app/public/uploads/ kısmına img unique bir şekilde kaydetme 
-            $path = $request->file("img_url")->storeAs("uploads", $filename, "public");
+            $path = $request->file("img_url")->storeAs("uploads/quizImages", $filename, "public");
         }
 
+        // Quiz Kaydı
         $quiz = Quiz::create([
             'title' => $request->title,
-            'subject' => $request->subject,
+            'subject' => $request->subject ?? 'AI Generated',
             'description' => $request->description,
             'difficulty' => $request->difficulty,
             'number_of_questions' => $request->number_of_questions,
             'number_of_options' => $request->number_of_options,
             'duration_minutes' => $request->duration_minutes,
             'wrong_to_correct_ratio' => $request->wrong_to_correct_ratio ?? 0,
-            'img_url' => $path ?? null,
+            'img_url' => $path,
             'user_id' => Auth::id(),
         ]);
 
+        // Soruları ve Cevapları Kaydet
         try {
             foreach ($generatedQuestions['questions'] as $q) {
                 $question = $quiz->questions()->create([
-                    'title' => $q['title'],
+                    'title' => $q['title'] ?? 'Soru',
                     'question_text' => $q['content'],
                     'points' => $q['points'] ?? 1,
                 ]);
@@ -388,24 +469,23 @@ class QuizController extends Controller
                 }
             }
         } catch (\Throwable $e) {
-            dd('Hata:', $e->getMessage());
+            $quiz->delete(); // Hata varsa quizi temizle
+            return response()->json(['success' => false, 'message' => 'Kayıt hatası: ' . $e->getMessage()], 500);
         }
-
-        #librarye ekleme
-        $user = Auth::user();
-
+        
+        // Kütüphaneye Ekle
         /** @var \App\Models\User $user */  #PHP Intelephense sorunu
-        $user->libraryQuizzes()->attach($quiz->id);
+        Auth::user()->libraryQuizzes()->attach($quiz->id);
 
-        //Eski
-        //return redirect()->route("library.show")->with('success', 'Yeni Quiz Oluşturuldu.');
-
+        // 8. Başarılı Dönüş
         return response()->json([
             'success' => true,
-            'message' => 'Yeni Quiz başarıyla oluşturuldu! 🚀',
+            'message' => 'Yapay Zeka Quizi Başarıyla Oluşturdu! 🚀',
             'redirect' => route("library.show")
         ]);
     }
+
+
 
 
     public function delete_quiz(Quiz $quiz)
