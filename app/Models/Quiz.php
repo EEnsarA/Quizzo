@@ -85,6 +85,11 @@ class Quiz extends Model
         return $this->hasMany(QuizResult::class)->whereNotIn("time_spent", [0]);
     }
 
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class);
+    }
+
 
     protected $casts = [
         "difficulty" => Difficulty::class,

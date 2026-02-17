@@ -13,12 +13,15 @@ use Illuminate\Support\Facades\Auth;
 use Laravel\Prompts\Output\ConsoleOutput;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use App\Models\Category;
 
 class QuizController extends Controller
 {
     public function create_quiz()
     {
-        return view("pages.create");
+        
+        $categories = Category::orderBy('name')->get();
+        return view("pages.create", compact('categories'));
     }
 
     public function create_questions(Quiz $quiz)
@@ -190,6 +193,8 @@ class QuizController extends Controller
             "difficulty" => "required|string|in:easy,medium,hard,expert",
             "duration_minutes" => "required|integer|min:1|max:120",
             "wrong_to_correct_ratio" => "nullable|integer|min:0|max:10",
+            "categories" => "nullable|array", 
+            "categories.*" => "exists:categories,id",
         ]);
 
         #img için store işlemleri
@@ -214,6 +219,12 @@ class QuizController extends Controller
             "wrong_to_correct_ratio" => $request->wrong_to_correct_ratio ?? 0,
             "user_id" => Auth::id(),
         ]);
+
+        
+        if ($request->has('categories')) {
+            $quiz->categories()->sync($request->categories);
+        }
+
 
 
         #librarye ekleme
@@ -283,7 +294,6 @@ class QuizController extends Controller
     public function ai_generate(Request $request)
     {
         set_time_limit(180);
-        // 1. Yetki Kontrolü
         if (!Auth::check()) {
             if ($request->wantsJson()) {
                 return response()->json(['message' => 'Oturum süreniz dolmuş.'], 401);
@@ -293,11 +303,10 @@ class QuizController extends Controller
 
         $apiKey = env('GEMINI_API_KEY');
 
-        // 2. Validasyon
         $request->validate([
             "title" => "required|string|max:255",
             "img_url" => "nullable|image|mimes:jpg,jpeg,png|max:2048",
-            // PDF, DOCX, TXT kabul ediyoruz (Max 10MB)
+            // PDF, DOCX, TXT 
             "source_file" => "nullable|file|mimes:pdf,docx,txt|max:10240",
             "subject" => "nullable|string|max:255",
             "description" => "nullable|string|max:500",
@@ -306,9 +315,11 @@ class QuizController extends Controller
             "difficulty" => "required|string|in:easy,medium,hard,expert",
             "duration_minutes" => "required|integer|min:1|max:120",
             "wrong_to_correct_ratio" => "nullable|integer|min:0|max:10",
+            "categories" => "nullable|array", 
+            "categories.*" => "exists:categories,id",
         ]);
 
-        // 3. Dosya Yükleme (Google File API)
+        // Dosya Yükleme (Google File API)
         $fileUri = null;
         if ($request->hasFile('source_file')) {
             try {
@@ -317,7 +328,6 @@ class QuizController extends Controller
                 $fileSize = $file->getSize();
                 $fileData = file_get_contents($file->getPathname());
 
-                // A) Upload Başlat ve Veriyi Gönder
                 $uploadResponse = Http::withHeaders([
                     'X-Goog-Upload-Protocol' => 'raw',
                     'X-Goog-Upload-Command' => 'start, upload, finalize',
@@ -331,14 +341,14 @@ class QuizController extends Controller
                     throw new \Exception("Google Upload Hatası: " . $uploadResponse->body());
                 }
 
-                // B) Dosya Adresini (URI) Al
+                
                 $fileUri = $uploadResponse->json()['file']['uri'] ?? null;
             } catch (\Exception $e) {
                 return response()->json(['success' => false, 'message' => 'Dosya işleme hatası: ' . $e->getMessage()], 500);
             }
         }
 
-        // 4. Prompt Hazırlama (Sıkı Kurallar)
+        
         $jsonSchema = '{
             "questions": [
                 {
@@ -353,7 +363,7 @@ class QuizController extends Controller
             ]
         }';
 
-        // Sistem Talimatı: Dosya olsa bile kullanıcının konusuna sadık kalmasını sağlar.
+       
         $systemInstruction = "Sen uzman bir sınav hazırlayıcısısın. ";
 
         if ($fileUri) {
@@ -374,10 +384,10 @@ class QuizController extends Controller
         
         ÇIKTI FORMATI: Sadece ve sadece aşağıdaki JSON yapısında çıktı ver. Başka hiçbir metin, başlık veya açıklama yazma.";
 
-        // 5. Payload (İçerik) Oluşturma
+      
         $parts = [];
 
-        // Dosya varsa ekle
+       
         if ($fileUri) {
             $parts[] = [
                 'file_data' => [
@@ -387,12 +397,12 @@ class QuizController extends Controller
             ];
         }
 
-        // Metin promptunu ekle
+     
         $parts[] = [
             'text' => $systemInstruction . "\n" . $userPrompt . "\n\nJSON ŞEMASI:\n" . $jsonSchema
         ];
 
-        // 6. Gemini 2.5 API İsteği
+        // Gemini 2.5 API İsteği
         try {
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json'
@@ -410,7 +420,7 @@ class QuizController extends Controller
 
             $data = $response->json();
 
-            // Yanıt Kontrolü
+        
             if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
                 Log::error("AI Boş Döndü", ['response' => $data]);
                 throw new \Exception("AI yanıt üretemedi.");
@@ -418,7 +428,6 @@ class QuizController extends Controller
 
             $jsonString = $data['candidates'][0]['content']['parts'][0]['text'];
 
-            // Temizlik ve Parse
             $cleanText = preg_replace('/^```json|```$/m', '', trim($jsonString));
             $generatedQuestions = json_decode($cleanText, true);
 
@@ -429,16 +438,16 @@ class QuizController extends Controller
             return response()->json(['success' => false, 'message' => 'AI Hatası: ' . $e->getMessage()], 500);
         }
 
-        // 7. Veritabanı Kayıt İşlemleri
+        //Veritabanı Kayıt
 
-        // Kapak Resmi Kaydı
+        //Kapak Resmi 
         $path = null;
         if ($request->hasFile("img_url")) {
             $filename = uniqid() . "-" . $request->file("img_url")->getClientOriginalName();
             $path = $request->file("img_url")->storeAs("uploads/quizImages", $filename, "public");
         }
 
-        // Quiz Kaydı
+        //Quiz 
         $quiz = Quiz::create([
             'title' => $request->title,
             'subject' => $request->subject ?? 'AI Generated',
@@ -451,6 +460,10 @@ class QuizController extends Controller
             'img_url' => $path,
             'user_id' => Auth::id(),
         ]);
+
+        if ($request->has('categories')) {
+            $quiz->categories()->sync($request->categories);
+        }
 
         // Soruları ve Cevapları Kaydet
         try {
@@ -502,5 +515,80 @@ class QuizController extends Controller
         $quiz_item->delete();
 
         return redirect()->route("library.show");
+    }
+
+
+
+
+    // --- 4. DÜZENLEME (ADIM 1: Metadata) ---
+    public function edit_quiz(Quiz $quiz)
+    {
+        // Yetki Kontrolü
+        if (Auth::id() !== $quiz->user_id) abort(403);
+
+        // Kategorileri yükle
+        $categories = Category::orderBy('name')->get();
+        
+        // Quiz'in seçili kategorilerini ID dizisi olarak al (AlpineJS için)
+        $selectedCategories = $quiz->categories->pluck('id')->toArray();
+
+        // create.blade.php'yi yeniden kullanıyoruz ama dolu gönderiyoruz
+        return view("pages.create", compact('quiz', 'categories', 'selectedCategories'));
+    }
+
+    // --- 5. GÜNCELLEME (ADIM 1: Metadata Kaydı) ---
+    public function update_quiz(Request $request, Quiz $quiz)
+    {
+        if (Auth::id() !== $quiz->user_id) abort(403);
+
+        $request->validate([
+            "title" => "required|string|max:255",
+            "img_url" => "nullable|image|mimes:jpg,jpeg,png|max:2048",
+            "subject" => "required|string|max:255",
+            "categories" => "nullable|array",
+            // Diğer validasyonlar...
+        ]);
+
+        // Resim güncelleme varsa
+        $path = $quiz->img_url;
+        if ($request->hasFile("img_url")) {
+            $filename = uniqid() . "-" . $request->file("img_url")->getClientOriginalName();
+            $path = $request->file("img_url")->storeAs("uploads/quizImages", $filename, "public");
+        }
+
+        $quiz->update([
+            "title" => $request->title,
+            "subject" => $request->subject,
+            "description" => $request->description,
+            "img_url" => $path,
+            "difficulty" => $request->difficulty,
+            "duration_minutes" => $request->duration_minutes,
+            // Soru sayısını değiştirirse aşağıda mantık kurmak gerekir, şimdilik güncelliyoruz
+            "number_of_questions" => $request->number_of_questions,
+            "number_of_options" => $request->number_of_options,
+        ]);
+
+        if ($request->has('categories')) {
+            $quiz->categories()->sync($request->categories);
+        }
+
+        // Başarılı ise Soruları Düzenleme Sayfasına Yönlendir
+        return response()->json([
+            'success' => true,
+            'message' => 'Quiz ayarları güncellendi! Sorulara geçiliyor...',
+            'redirect' => route("quiz.edit.questions", $quiz)
+        ]);
+    }
+
+    // --- 6. SORULARI DÜZENLEME SAYFASI (ADIM 2) ---
+    public function edit_questions(Quiz $quiz)
+    {
+        if (Auth::id() !== $quiz->user_id) abort(403);
+        
+        // Soruları ve Cevapları yükle
+        $quiz->load('questions.answers');
+
+        // create_question.blade.php'yi kullanacağız
+        return view("pages.create_question", compact("quiz"));
     }
 }

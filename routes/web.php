@@ -21,6 +21,7 @@ Route::get("/create_quiz", [QuizController::class, "create_quiz"])->name("quiz.c
 Route::post("/create_quiz/add", [QuizController::class, "add_quiz"])->name("quiz.add"); // Elle ekleme postu
 Route::post("/create_questions/add", [QuizController::class, "add_questions"])->name("questions.add");
 Route::get("/create_questions/{quiz}", [QuizController::class, "create_questions"])->name("quiz.add.questions");
+Route::get("/edit_quiz",[QuizController::class,"edit_quiz"])->name("quiz.edit");
 
 // --- Quiz Çözme İşlemleri  ---
 Route::get("/quiz/{quiz}", [QuizController::class, "show_quiz"])->name("quiz.show");

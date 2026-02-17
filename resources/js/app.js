@@ -157,6 +157,41 @@ Alpine.data("quizCreate", (props = {}) => ({
     sourceFile: null,
     aiLoading: false,
 
+    allCategories: props.allCategories || [],
+    selectedCategories: [],
+
+    categorySearch: '',
+
+    selectedCategories: config.selectedCategories || [],
+
+    toggleCategory(id) {
+        if (this.selectedCategories.includes(id)) {
+            // Varsa çıkar
+            this.selectedCategories = this.selectedCategories.filter(c => c !== id);
+        } else {
+            // Yoksa ekle
+            this.selectedCategories.push(id);
+        }
+    },
+
+    get filteredCategories() {
+        // Arama kutusu boşsa hepsini göster (veya istersen ilk 10'u göster)
+        if (this.categorySearch === '') {
+            return this.allCategories;
+        }
+
+        // Arama yapılıyorsa filtrele (Türkçe karakter duyarlı lowercase)
+        const search = this.categorySearch.toLocaleLowerCase('tr-TR');
+        return this.allCategories.filter(cat =>
+            cat.name.toLocaleLowerCase('tr-TR').includes(search)
+        );
+    },
+
+    getCategoryName(id) {
+        const cat = this.allCategories.find(c => c.id == id);
+        return cat ? cat.name : 'Bilinmeyen';
+    },
+
 
     async submitQuiz(targetUrl) {
 
@@ -444,6 +479,7 @@ Alpine.data("examCanvas", (props = {}) => ({
     showTitleModal: false,
     tempTitle: '',
 
+
     selectedId: null,
     draggingType: null,
     draggingPayload: null,
@@ -477,7 +513,7 @@ Alpine.data("examCanvas", (props = {}) => ({
     initialCategories: props.initialCategories || [], // Blade'den gelen (Config değil props kullanıyoruz)
     initialDescription: props.initialDescription || '',
     allCategories: props.allCategories || [],
-
+    categorySearch: '',
 
     get currentPageElements() {
         if (!Array.isArray(this.elements)) return [];
@@ -486,6 +522,27 @@ Alpine.data("examCanvas", (props = {}) => ({
 
     get selectedItem() {
         return this.elements.find(el => el.id === this.selectedId);
+    },
+
+    get filteredCategories() {
+        if (this.categorySearch === '') {
+            return this.allCategories;
+        }
+        const search = this.categorySearch.toLocaleLowerCase('tr-TR');
+        return this.allCategories.filter(cat =>
+            cat.name.toLocaleLowerCase('tr-TR').includes(search)
+        );
+    },
+
+    // Toggle Fonksiyonu (Eskisiyle aynı kalabilir ama garanti olsun diye buraya da yazıyorum)
+    toggleCategory(id) {
+        if (this.tempCategories.includes(id)) {
+            this.tempCategories = this.tempCategories.filter(c => c !== id);
+        } else {
+            this.tempCategories.push(id);
+            // Seçince aramayı temizlemek istersen:
+            // this.categorySearch = ''; 
+        }
     },
 
 
@@ -1321,10 +1378,25 @@ Alpine.data("examCanvas", (props = {}) => ({
 
 //? Library Handler
 Alpine.data("libraryHandler", (props = {}) => ({
-    activeTab: 'quizzes',
+
+    activeTab: props.activeTab || 'quizzes',
     showPreviewModal: false,
     previewUrl: null,
     iframeLoading: false,
+
+
+    setTab(tabName) {
+        this.activeTab = tabName;
+    },
+
+    // Select değiştiğinde formu otomatik göndermek için
+    submitFilters() {
+        this.$nextTick(() => {
+            if (this.$refs.filterForm) {
+                this.$refs.filterForm.submit();
+            }
+        });
+    },
 
     // ---  ÖN İZLEME FONKSİYONU ---
     openPreview(id) {

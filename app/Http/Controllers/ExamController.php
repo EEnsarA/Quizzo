@@ -152,6 +152,8 @@ class ExamController extends Controller
     {
         $exam = ExamPaper::findOrFail($id);
 
+        $exam->increment('downloads_count');
+
         // 1. JSON verisini al (Senin attığın array)
         $rawData = is_string($exam->canvas_data) ? json_decode($exam->canvas_data, true) : $exam->canvas_data;
 

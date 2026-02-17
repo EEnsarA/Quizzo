@@ -13,4 +13,9 @@ class Category extends Model
     {
         return $this->belongsToMany(ExamPaper::class, 'category_exam_paper');
     }
+
+    public function quizzes()
+    {
+        return $this->belongsToMany(Quiz::class);
+    }
 }
