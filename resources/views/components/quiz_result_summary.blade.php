@@ -23,7 +23,7 @@
             </div>
             
             <h2 class="text-xl font-bold text-white">
-                {{ $result->user?->name ?? 'Misafir' }}
+                {{ $result->user?->name ?? 'Guest-' . substr($result->session_id,0,4) }}
             </h2>
             <p class="text-xs text-gray-400 mt-1">
                 {{ $result->created_at->format('d M Y, H:i') }}

@@ -14,19 +14,25 @@ Route::get("/", [HomeController::class, "index"])->name("home");
 Route::post("/login", [UserController::class, "login"])->name("login");
 Route::post("/register", [UserController::class, "register"])->name("register");
 Route::post("/logout", [UserController::class, "logout"])->name("logout");
+// --- Google Auth ---
+Route::get('/auth/google', [UserController::class, 'redirectToGoogle'])->name('google.login');
+Route::get('/auth/google/callback', [UserController::class, 'handleGoogleCallback']);
 
 // --- Quiz ---
 // Misafirler buraya girebilir ve elle soru ekleyebilir.
 Route::get("/create_quiz", [QuizController::class, "create_quiz"])->name("quiz.create");
 Route::post("/create_quiz/add", [QuizController::class, "add_quiz"])->name("quiz.add"); // Elle ekleme postu
-Route::post("/create_questions/add", [QuizController::class, "add_questions"])->name("questions.add");
+Route::post("/create_questions/add", [QuizController::class, "save_questions"])->name("questions.add");
 Route::get("/create_questions/{quiz}", [QuizController::class, "create_questions"])->name("quiz.add.questions");
-Route::get("/edit_quiz",[QuizController::class,"edit_quiz"])->name("quiz.edit");
+
+Route::get('/quiz/{quiz:id}/edit', [QuizController::class, 'edit_quiz'])->name('quiz.edit');
+Route::post('/quiz/{quiz:id}/update', [QuizController::class, 'update_quiz'])->name('quiz.update');
+Route::get('/quiz/{quiz:id}/edit/questions', [QuizController::class, 'edit_questions'])->name('quiz.edit.questions');
 
 // --- Quiz Çözme İşlemleri  ---
 Route::get("/quiz/{quiz}", [QuizController::class, "show_quiz"])->name("quiz.show");
 Route::get("/quiz/{quiz}/start", [QuizController::class, "start_quiz"])->name("quiz.start");
-Route::post("/quiz/{quiz}/check/{quiz_result}", [QuizController::class, "check_quiz"])->name("quiz.check");
+Route::post("/quiz/{quiz:id}/check/{quiz_result}", [QuizController::class, "check_quiz"])->name("quiz.check");
 Route::get("/quiz/result/{result}", [QuizController::class, "show_result"])->name("quiz.result");
 
 Route::get("/exam_create", [ExamController::class, "index"])->name("exam.create");
@@ -52,6 +58,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post("/create_quiz/ai-generate", [QuizController::class, "ai_generate"])->name("quiz.ai_generate");
     Route::post('/exam/{id}/toggle-public', [ExamController::class, 'togglePublic'])->name('exam.toggle-public');
+
+    // fork
+    Route::post('/exam/{id}/fork', [ExamController::class, 'fork'])->name('exam.fork');
+
+
+
     // --- Kütüphane & Silme İşlemleri ---
     Route::delete("/quiz/{quiz}/delete", [QuizController::class, "delete_quiz"])->name("quiz.delete");
     Route::get("/library", [LibraryController::class, "show_library"])->name("library.show");

@@ -339,4 +339,29 @@ class ExamController extends Controller
         ]);
     }
 
+
+    public function fork($id)
+    {
+        // Orijinal sınav
+        $originalExam = ExamPaper::findOrFail($id);
+
+        $newExam = $originalExam->replicate();
+      
+        $newExam->user_id = Auth::id();
+        $newExam->title = $originalExam->title . ' (Kopya)';
+        $newExam->is_public = false; 
+        $newExam->downloads_count = 0; 
+        $newExam->save();
+
+        if ($originalExam->categories) {
+            $newExam->categories()->sync($originalExam->categories->pluck('id'));
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sınav başarıyla kütüphanenize kopyalandı!',
+            'redirect' => route('exam.edit', $newExam->id)
+        ]);
+    }
+
 }

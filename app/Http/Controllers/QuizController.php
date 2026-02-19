@@ -291,6 +291,110 @@ class QuizController extends Controller
         ]);
     }
 
+    public function save_questions(Request $request)
+    {
+        // 1. Yetki ve Varlık Kontrolü
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Oturum süreniz dolmuş.'], 401);
+        }
+
+        $quiz = Quiz::find($request->quizId);
+
+        if (!$quiz) {
+            return response()->json(['message' => 'Quiz bulunamadı.'], 404);
+        }
+
+        if ($quiz->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Bu işlem için yetkiniz yok.'], 403);
+        }
+
+        // 2. Validasyon (Gevşetilmiş)
+        // ID alanı bazen olabilir bazen olmayabilir (nullable), resim bazen string bazen dosya olabilir.
+        $request->validate([
+            'questions' => 'required|array',
+            'questions.*.title' => 'required|string|max:255',
+            'questions.*.content' => 'required|string|max:1000',
+            'questions.*.points' => 'required|integer|min:1',
+            'questions.*.answers' => 'required|array|min:2',
+        ]);
+
+        // 3. İşlem Gören ID'leri Tutacak Dizi (Silme işlemi için gerekli)
+        $processedQuestionIds = [];
+
+        foreach ($request->questions as $qData) {
+            
+            $question = null;
+
+            // A) GÜNCELLEME KONTROLÜ
+            // Eğer formdan 'id' geldiyse, bu eski bir sorudur. Veritabanından bulalım.
+            if (isset($qData['id']) && $qData['id']) {
+                $question = Question::where('id', $qData['id'])->where('quiz_id', $quiz->id)->first();
+            }
+
+            // B) RESİM YÜKLEME MANTIĞI
+            // Varsayılan olarak eski yolu koruruz.
+            $path = $question ? $question->img_url : null; 
+
+            // Eğer yeni bir dosya yüklendiyse (UploadedFile nesnesi ise)
+            if (isset($qData["img_url"]) && $qData["img_url"] instanceof \Illuminate\Http\UploadedFile) {
+                // (İstersen burada eski resmi silebilirsin: Storage::delete($question->img_url))
+                $filename = uniqid() . "-" . $qData['img_url']->getClientOriginalName();
+                $path = $qData['img_url']->storeAs("uploads", $filename, "public");
+            }
+
+            // C) KAYIT VEYA GÜNCELLEME (UpdateOrCreate Mantığı)
+            if ($question) {
+                // --- GÜNCELLEME ---
+                $question->update([
+                    'title' => $qData['title'],
+                    'question_text' => $qData['content'],
+                    'points' => $qData['points'],
+                    'img_url' => $path, // Yeni resim varsa o, yoksa eskisi
+                ]);
+            } else {
+                // --- YENİ KAYIT ---
+                $question = Question::create([
+                    'quiz_id' => $quiz->id,
+                    'title' => $qData['title'],
+                    'question_text' => $qData['content'],
+                    'points' => $qData['points'],
+                    'img_url' => $path,
+                ]);
+            }
+
+            // Bu ID'yi işlenenler listesine ekle (Silinmeyecekler listesi)
+            $processedQuestionIds[] = $question->id;
+
+            // D) CEVAPLARI SENKRONİZE ET (En Temiz Yöntem: Sil ve Yeniden Ekle)
+            // Cevapların ID'lerini takip etmek zordur, sıfırlayıp eklemek daha güvenlidir.
+            $question->answers()->delete();
+
+            if (isset($qData["answers"]) && is_array($qData["answers"])) {
+                foreach ($qData["answers"] as $answer) {
+                    // Boş şıkları kaydetme (Validation yapsa da ekstra önlem)
+                    if(empty($answer['answer_content'])) continue;
+
+                    Answer::create([
+                        'question_id' => $question->id,
+                        'answer_text' => $answer['answer_content'],
+                        'is_correct' => isset($answer['is_correct']) ? (bool)$answer['is_correct'] : false,
+                    ]);
+                }
+            }
+        }
+
+        // 4. TEMİZLİK (SİLME) İŞLEMİ
+        // Veritabanında olan AMA formdan gelen listede ($processedQuestionIds) OLMAYAN soruları sil.
+        // Yani kullanıcı arayüzde "Soruyu Sil" dediyse veya soru sayısını düşürdüyse buradan uçar.
+        $quiz->questions()->whereNotIn('id', $processedQuestionIds)->delete();
+
+        return response()->json([
+            "success" => true,
+            "message" => "Sorular başarıyla kaydedildi ve güncellendi! ✅",
+            "redirect" => route("library.show")
+        ]);
+    }
+
     public function ai_generate(Request $request)
     {
         set_time_limit(180);

@@ -2,10 +2,13 @@
 @props(['quiz','quiz_result','is_new_attempt'])
 @section("content")
 
-<div x-data="quizPlayer()" x-cloak x-init="init()" 
-     data-duration-minutes="{{ $quiz->duration_minutes }}" 
-     data-is-new="{{ $is_new_attempt ? 'true' : 'false' }}"
-     data-start-time="{{ $quiz_result->started_at->getTimestamp() }}" 
+<div x-data="quizPlayer({
+        durationMinutes: {{ $quiz->duration_minutes }},
+        startTime: {{ now()->timestamp }},
+        isNew: true, 
+        checkUrl: '{{ route('quiz.check', ['quiz' => $quiz->id, 'quiz_result' => $quiz_result->id]) }}',
+        token: '{{ csrf_token() }}'
+    })" x-cloak x-init="init()" 
      class="min-h-screen p-4 md:p-8 font-sans flex justify-center items-start">
 
    

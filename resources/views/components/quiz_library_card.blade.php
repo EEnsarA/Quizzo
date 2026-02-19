@@ -55,7 +55,7 @@
         <div class="mt-auto flex gap-2">
             @if($myQuiz)
                 {{-- DÜZENLE BUTONU (Sadece Kendi Quizimse) --}}
-                <a href="{{ route('quiz.edit', $quiz->id) }}" class="flex-1 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
+                <a href="{{ route('quiz.edit', $quiz) }}" class="flex-1 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-pen-to-square"></i> Düzenle
                 </a>
                 

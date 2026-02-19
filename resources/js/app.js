@@ -15,42 +15,54 @@ Alpine.store("sidebar", {
 })
 
 
+/*
+* Geri Sayım 
+? setInterval() => belli aralıklarla bir fonksiyonu tekrar tekrar çalıştırır (ör. her 1 saniyede 1) bu fonksiyon bir id döndürür bu id = intervalId dir 
+? clearInterval(this.intervalId) => setInterval döngüsünü durdurur , parametre olarak girilen intervalId ye ait olan döngüyü durdurur.
+? endTimeInSeconds => quizin başlatıldığı zaman + quizin önceden belirlenen süresi (startTime + durationMinutes * 60) hesaplanarak  sınavın ne zaman biteceği saniye cinsinden hesaplanır
+? currentTimeInSeconds => saniye cinsinden şu anki zamanı bulur Date.now / 1000
+? timeLeftInSeconds => sınavın bitiş zamanından şuan ki zaman her saniyede 1 çıkartılır (interval) Her saniye, o anki zamanı bitiş zamanından çıkararak ne kadar süre kaldığını hesaplar
+? eğer kalan zaman 0 küçük eşit ise süre dolmuştur . interval döngüsü durdurulur ve form submit edilir
+? ayrıca kalan zaman gösterilmek üzere countdownText'e yazdırılır , her saniye güncellenerek
+
+*/
 
 //? Quiz Player
-Alpine.data("quizPlayer", () => ({
+//? Quiz Player
+Alpine.data("quizPlayer", (props) => ({
     active: 0,
-    answers: {}, // [questionId]: answerId   1(index)-8 , 
+    answers: {},
+    durationMinutes: props.durationMinutes,
+    startTime: props.startTime,
 
-    durationMinutes: 0,
-    startTime: 0,
+    checkUrl: props.checkUrl,
+    token: props.token,
+
     countdownText: "Time: --:--",
     intervalId: null,
 
     init() {
 
-        const timerElement = this.$el;
-        const initialDuration = timerElement.dataset.durationMinutes;
-        const initialStartTime = timerElement.dataset.startTime;
-        const isNewAttempt = timerElement.dataset.isNew === 'true';
-
-        if (isNewAttempt) {
+        if (props.isNew) {
             localStorage.removeItem('quiz-state');
         }
 
 
         const storedState = JSON.parse(localStorage.getItem("quiz-state"));
-        this.durationMinutes = parseInt(storedState?.durationMinutes) || parseInt(initialDuration);
-        this.startTime = parseInt(storedState?.startTime) || parseInt(initialStartTime);
 
-        this.active = storedState?.active || 0;
-        this.answers = storedState?.answers || {};
+
+        if (storedState) {
+            this.durationMinutes = parseInt(storedState.durationMinutes);
+            this.startTime = parseInt(storedState.startTime);
+            this.active = storedState.active || 0;
+            this.answers = storedState.answers || {};
+        }
 
         this.startTimer();
         this.saveState();
 
         this.$watch("answers", () => { this.saveState(); })
         this.$watch("active", () => { this.saveState(); })
-
     },
 
     saveState() {
@@ -63,92 +75,75 @@ Alpine.data("quizPlayer", () => ({
         localStorage.setItem("quiz-state", JSON.stringify(state));
     },
 
-    /*
-    * Geri Sayım 
-    ? setInterval() => belli aralıklarla bir fonksiyonu tekrar tekrar çalıştırır (ör. her 1 saniyede 1) bu fonksiyon bir id döndürür bu id = intervalId dir 
-    ? clearInterval(this.intervalId) => setInterval döngüsünü durdurur , parametre olarak girilen intervalId ye ait olan döngüyü durdurur.
-    ? endTimeInSeconds => quizin başlatıldığı zaman + quizin önceden belirlenen süresi (startTime + durationMinutes * 60) hesaplanarak  sınavın ne zaman biteceği saniye cinsinden hesaplanır
-    ? currentTimeInSeconds => saniye cinsinden şu anki zamanı bulur Date.now / 1000
-    ? timeLeftInSeconds => sınavın bitiş zamanından şuan ki zaman her saniyede 1 çıkartılır (interval) Her saniye, o anki zamanı bitiş zamanından çıkararak ne kadar süre kaldığını hesaplar
-    ? eğer kalan zaman 0 küçük eşit ise süre dolmuştur . interval döngüsü durdurulur ve form submit edilir
-    ? ayrıca kalan zaman gösterilmek üzere countdownText'e yazdırılır , her saniye güncellenerek
-
-    */
-
-
     startTimer() {
-        const endTimeInSeconds = this.startTime + (this.durationMinutes * 60);
         const totalDurationInSeconds = this.durationMinutes * 60;
+
         this.intervalId = setInterval(() => {
             const currentTimeInSeconds = Math.floor(Date.now() / 1000);
-
-            // Başlangıçtan bu yana geçen süreyi hesapla
             const elapsedTimeInSeconds = currentTimeInSeconds - this.startTime;
-
-            // Kalan süreyi hesapla (Toplam Süre - Geçen Süre)
             const timeLeftInSeconds = totalDurationInSeconds - elapsedTimeInSeconds;
 
             if (timeLeftInSeconds <= 0) {
-                this.countdownText = "Süre Doldu !";
+                this.countdownText = "Süre Doldu!";
                 clearInterval(this.intervalId);
+                window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Süre Doldu!', type: 'warning' } }));
+                this.submitQuiz();
+
+                return;
             }
 
-            const minutes = Math.floor(timeLeftInSeconds / 60);   // ör: 2min15sec 
+            const minutes = Math.floor(timeLeftInSeconds / 60);
             const seconds = timeLeftInSeconds % 60;
-
             this.countdownText = `Time: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
         }, 1000);
     },
 
-
     toggle(qid, aid) {
         if (this.answers[qid] == aid) {
             delete this.answers[qid];
-        }
-        else {
+        } else {
             this.answers[qid] = aid;
         }
     },
-    prev() {
-        if (this.active > 0) {
-            this.active--
-        }
-    },
-    next(total) {
-        if (this.active < total) {
-            this.active++
-        }
-    },
-    async submitQuiz(checkUrl, token) {
-        console.log(this.answers);
-        const answerData = this.answers;
-        try {
 
-            const result = await axios.post(checkUrl, answerData, {
+    prev() {
+        if (this.active > 0) this.active--;
+    },
+
+    next(total) {
+        if (this.active < total) this.active++;
+    },
+
+    async submitQuiz() {
+        console.log("Sınav gönderiliyor...", this.answers);
+
+        try {
+            const result = await axios.post(this.checkUrl, this.answers, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': token,
+                    'X-CSRF-TOKEN': this.token,
                 },
-                withCredentials: true // session
+                withCredentials: true
             });
+
             console.log(result.data);
             localStorage.removeItem("quiz-state");
             window.location.href = result.data.redirect;
-        }
-        catch (error) {
-            console.log(error)
+        } catch (error) {
+            console.error("Sınav gönderilirken hata oluştu:", error);
+            // Opsiyonel: Toast mesajı vs.
         }
     }
-
-
 }));
+
+
+
 
 //? Quiz Create
 Alpine.data("quizCreate", (props = {}) => ({
-
     token: props.token || '',
-    negativeMarkingEnabled: false,
+    negativeMarkingEnabled: props.negativeMarkingEnabled || false, // Props'tan gelmeli
     fileName: "",
     fileUrl: "",
     errors: props.errors || {},
@@ -157,13 +152,16 @@ Alpine.data("quizCreate", (props = {}) => ({
     sourceFile: null,
     aiLoading: false,
 
+    // --- KATEGORİ YÖNETİMİ ---
     allCategories: props.allCategories || [],
-    selectedCategories: [],
-
+    selectedCategories: props.selectedCategories || [], // DÜZELTİLDİ: props'tan alıyoruz
     categorySearch: '',
 
-    selectedCategories: config.selectedCategories || [],
+    showTitleModal: false,
+    tempTitle: '', // Modal içindeki input için
+    targetUrlToSubmit: null,
 
+    // --- FONKSİYONLAR ---
     toggleCategory(id) {
         if (this.selectedCategories.includes(id)) {
             // Varsa çıkar
@@ -175,12 +173,9 @@ Alpine.data("quizCreate", (props = {}) => ({
     },
 
     get filteredCategories() {
-        // Arama kutusu boşsa hepsini göster (veya istersen ilk 10'u göster)
         if (this.categorySearch === '') {
             return this.allCategories;
         }
-
-        // Arama yapılıyorsa filtrele (Türkçe karakter duyarlı lowercase)
         const search = this.categorySearch.toLocaleLowerCase('tr-TR');
         return this.allCategories.filter(cat =>
             cat.name.toLocaleLowerCase('tr-TR').includes(search)
@@ -192,13 +187,73 @@ Alpine.data("quizCreate", (props = {}) => ({
         return cat ? cat.name : 'Bilinmeyen';
     },
 
+    setFile(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.fileName = file.name;
+            this.fileUrl = URL.createObjectURL(file);
+        }
+    },
 
-    async submitQuiz(targetUrl) {
+    setSourceFile(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.sourceFileName = file.name;
+            this.sourceFile = file;
+        }
+    },
 
+    hasError(field) {
+        return this.errors && this.errors[field];
+    },
+
+    getError(field) {
+        return this.errors[field][0];
+    },
+
+    async submitQuiz(url = null) {
+
+        let formElement = document.getElementById('quiz-create-form');
+        let currentTitle = document.getElementById('title').value;
+
+        // 1. KONTROL: Eğer isim hala "Yeni Quiz" ise (veya boşsa) modalı aç ve durdur.
+        if (currentTitle.trim() === 'Yeni Quiz' || currentTitle.trim() === '') {
+            this.tempTitle = currentTitle.trim() === 'Yeni Quiz' ? '' : currentTitle; // Modalda boş gelsin
+            this.targetUrlToSubmit = url; // Kullanıcı kaydet diyince bu url'yi kullanacağız
+            this.showTitleModal = true;
+
+            // Kullanıcıyı uyar (Opsiyonel)
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Lütfen quiz için bir isim belirleyin.', type: 'warning' } }));
+            return;
+        }
+
+        // Eğer isim değiştirilmişse, normal kaydetme işlemine devam et
+        this.processSubmission(url);
+    },
+
+    saveTitleAndContinue() {
+        if (this.tempTitle.trim() === '') {
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Quiz adı boş olamaz!', type: 'error' } }));
+            return;
+        }
+
+        // 1. Ana formdaki title inputunu güncelle
+        document.getElementById('title').value = this.tempTitle;
+
+        // 2. Modalı kapat
+        this.showTitleModal = false;
+
+        // 3. Gerçek kaydetme işlemini başlat
+        this.processSubmission(this.targetUrlToSubmit);
+    },
+
+    async processSubmission(url) {
         window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
         window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'İşlem yapılıyor, lütfen bekleyin...', type: 'info' } }));
 
         let formElement = document.getElementById('quiz-create-form');
+        let targetUrl = url ? url : formElement.action;
+
         let formData = new FormData(formElement);
 
         if (this.sourceFile) {
@@ -211,7 +266,6 @@ Alpine.data("quizCreate", (props = {}) => ({
         }
 
         try {
-            // 3. Axios İsteği
             const response = await axios.post(targetUrl, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -220,9 +274,7 @@ Alpine.data("quizCreate", (props = {}) => ({
             });
 
             if (response.data.success) {
-                // 4. Başarılıysa Bildirim ve Yönlendirme
                 window.dispatchEvent(new CustomEvent('notify', { detail: { message: response.data.message, type: 'success' } }));
-
                 setTimeout(() => {
                     window.location.href = response.data.redirect;
                 }, 1000);
@@ -230,73 +282,104 @@ Alpine.data("quizCreate", (props = {}) => ({
 
         } catch (error) {
             console.error(error);
-            // 5. Hata Yönetimi
             if (error.response && error.response.status === 422) {
-                // Laravel Validasyon Hatası
                 this.errors = error.response.data.errors;
                 window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Lütfen hatalı alanları kontrol edin.', type: 'error' } }));
             } else {
-                // Genel Hata
                 let msg = error.response?.data?.message || 'Bir hata oluştu.';
                 window.dispatchEvent(new CustomEvent('notify', { detail: { message: msg, type: 'error' } }));
             }
-            // Hata alınca loading'i kapat
             window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
         }
-    },
-
-
-    setSourceFile(event) {
-        const file = event.target.files[0];
-        if (file) {
-            this.sourceFileName = file.name;
-            this.sourceFile = file;
-        } else {
-            this.sourceFileName = null;
-            this.sourceFile = null;
-        }
-    },
-
-    hasError(field) {
-        if (this.errors[field]) return true;
-
-        else return false;
-    },
-
-    getError(field) {
-
-        if (this.hasError(field)) return this.errors[field][0]
-
-        else return "";
     }
-
-
-}))
-
+}));
 
 //? Question Create
 Alpine.data("questionCreate", (props = {}) => ({
+    quizId: props.quizId,
     total_questions: props.number_of_questions ?? 0,
     total_options: props.number_of_options ?? 2,
     current_q_index: 0,
-    quizId: props.quizId,
     errors: [],
-    sourceFileName: null, // Sidebar PDF adı
+    sourceFileName: null,
     aiLoading: false,
+    questions: [], // Başlangıçta boş, init'te dolduracağız
 
-    questions: Array.from({ length: props.number_of_questions ?? 0 }, () => ({
-        title: null,
-        content: "",
-        point: 1,
-        img_url: null,
-        fileName: "",
-        fileUrl: "",
-        answers: Array.from({ length: props.number_of_options ?? 2 }, () => ({
-            answer_content: "",
-            is_correct: false,
-        })),
-    })),
+    // --- BAŞLATMA (INIT) FONKSİYONU ---
+    init() {
+        // Eğer veritabanından gelen sorular varsa (Edit Modu)
+        if (props.existingQuestions && props.existingQuestions.length > 0) {
+            this.questions = props.existingQuestions.map(q => {
 
+                // 1. Mevcut cevapları formatla
+                let formattedAnswers = q.answers.map(a => ({
+                    answer_content: a.answer_text,
+                    is_correct: Boolean(a.is_correct)
+                }));
+
+                // 2. EKSİK CEVAPLARI TAMAMLA (Hata Çözümü Burası)
+                // Eğer olması gereken seçenek sayısı (this.total_options), DB'den gelenden fazlaysa boş ekle
+                if (formattedAnswers.length < this.total_options) {
+                    const diff = this.total_options - formattedAnswers.length;
+                    for (let k = 0; k < diff; k++) {
+                        formattedAnswers.push({
+                            answer_content: "",
+                            is_correct: false
+                        });
+                    }
+                }
+                // (Opsiyonel) Eğer DB'de fazlası varsa kırp (nadiren gerekir ama güvenli olur)
+                else if (formattedAnswers.length > this.total_options) {
+                    formattedAnswers = formattedAnswers.slice(0, this.total_options);
+                }
+
+                return {
+                    id: q.id,
+                    title: q.title,
+                    content: q.question_text,
+                    point: q.points,
+                    img_url: null,
+                    fileUrl: q.img_url ? `/storage/${q.img_url}` : null,
+                    fileName: q.img_url ? 'Mevcut Resim' : '',
+                    answers: formattedAnswers // Güncellenmiş cevap dizisi
+                };
+            });
+
+            // Eğer soru sayısı artırıldıysa ve DB'dekiler azsa, kalanı boş soru ile doldur
+            if (this.questions.length < this.total_questions) {
+                const diff = this.total_questions - this.questions.length;
+                for (let i = 0; i < diff; i++) {
+                    this.questions.push(this.createEmptyQuestion());
+                }
+            }
+            else if (this.questions.length > this.total_questions) {
+                // Örneğin DB'de 5 soru var ama ayarda 4 seçildi. İlk 4 tanesini al, 5.'yi at.
+                this.questions = this.questions.slice(0, this.total_questions);
+            }
+        }
+        else {
+            // Yeni Oluşturma Modu (Hepsi boş)
+            this.questions = Array.from({ length: this.total_questions }, () => this.createEmptyQuestion());
+        }
+    },
+
+    // Boş soru şablonu oluşturan yardımcı fonksiyon
+    createEmptyQuestion() {
+        return {
+            title: null,
+            content: "",
+            point: 1,
+            img_url: null,
+            fileName: "",
+            fileUrl: "",
+            answers: Array.from({ length: this.total_options }, () => ({
+                answer_content: "",
+                is_correct: false,
+            })),
+        };
+    },
+
+    // ... (nextQuestion, prevQuestion, goToQuestion, setFile fonksiyonların AYNEN KALSIN) ...
     nextQuestion() {
         if (this.current_q_index < this.total_questions - 1) {
             this.current_q_index += 1;
@@ -307,13 +390,11 @@ Alpine.data("questionCreate", (props = {}) => ({
             this.current_q_index -= 1;
         }
     },
-
     goToQuestion(index) {
         if (index >= 0 && index < this.total_questions) {
             this.current_q_index = index;
         }
     },
-
     setFile(event) {
         const file = event.target.files[0];
         if (file) {
@@ -322,80 +403,58 @@ Alpine.data("questionCreate", (props = {}) => ({
             this.questions[this.current_q_index].img_url = file;
         }
     },
-
     hasError(field) {
         const errorKey = `questions.${this.current_q_index}.${field}`;
-        console.log(errorKey)
-        return this.errors[errorKey] && this.errors[errorKey].length > 0 //errors["questions.0.title"]
+        return this.errors[errorKey] && this.errors[errorKey].length > 0;
     },
-
     getError(field) {
         const errorKey = `questions.${this.current_q_index}.${field}`;
         if (this.hasError(field)) {
-            const idx = this.errors[errorKey][0].search("field");
-            const errText = this.errors[errorKey][0].slice(idx, this.errors[errorKey][0].length)
-
-            return this.hasError(field) ? errText : ''; // The questions.0.title field is required. 
-            //The questions.0.answers.0.answer_content field is required.
+            // Mesajı temizleme (opsiyonel)
+            return this.errors[errorKey][0].replace(`questions.${this.current_q_index}.`, '').replace(' field', '');
         }
+        return '';
     },
 
-
+    // ... (submitForm ve generateSingleQuestionAI fonksiyonların AYNEN KALSIN) ...
     async submitForm(checkUrl, token) {
+        // ... Senin mevcut kodların ...
+        // Sadece küçük bir not: Edit modunda eski soruları güncellemek için 
+        // Backend tarafında logic kurman gerekebilir (örn: eski soruları silip yenileri eklemek gibi)
         let formData = new FormData();
+        formData.append("quizId", this.quizId);
 
-        /*
-            Laravel array parse edebilmesi için
-            questions[index][field] şeklinde gönderiyoruz
-            örneğin ; 
-
-            "questions" => [
-                0 => [
-                    "title" => "Soru 1",
-                    "content" => "Soru 1 içeriği"
-                ],
-                1 => [
-                    "title" => "Soru 2",
-                    "content" => "Soru 2 içeriği"
-                ],
-
-        */
-        formData.append("quizId", this.quizId)
         this.questions.forEach((q, idx) => {
-            formData.append(`questions[${idx}][content]`, q.content);
+            formData.append(`questions[${idx}][content]`, q.content || '');
             formData.append(`questions[${idx}][points]`, q.point);
-            if (q.img_url) {
+            if (q.id) {
+                formData.append(`questions[${idx}][id]`, q.id);
+            }
+            if (q.img_url instanceof File) { // Sadece yeni dosya varsa gönder
                 formData.append(`questions[${idx}][img_url]`, q.img_url);
             }
             if (q.title) {
                 formData.append(`questions[${idx}][title]`, q.title);
             }
             q.answers.forEach((a, a_idx) => {
-                formData.append(`questions[${idx}][answers][${a_idx}][answer_content]`, a.answer_content);
-                // .append metodu değer otomatik string çevirdiği için bool da sorun oluşturmasın diye 1,0 şeklinde gönderiyorum
+                formData.append(`questions[${idx}][answers][${a_idx}][answer_content]`, a.answer_content || '');
                 const isCorrectValue = a.is_correct ? 1 : 0;
                 formData.append(`questions[${idx}][answers][${a_idx}][is_correct]`, isCorrectValue)
             })
-        })
+        });
 
-        console.log(formData)
         try {
             const result = await axios.post(checkUrl, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'X-CSRF-TOKEN': token,
-                },
+                headers: { 'Content-Type': 'multipart/form-data', 'X-CSRF-TOKEN': token },
             });
-            console.log(result.data);
-            window.location.href = result.data.redirect;
+            if (result.data.redirect) window.location.href = result.data.redirect;
         } catch (error) {
-            console.log("Error : ", error.response.data);
+            console.error(error);
             if (error.response && error.response.status === 422) {
                 this.errors = error.response.data.errors;
-                console.log("errors : ", this.errors);
+                window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Lütfen alanları kontrol edin.', type: 'error' } }));
             }
         }
-
     },
     async generateSingleQuestionAI() {
         if (!this.sourceFileName && !this.questions[this.current_q_index].title) {

@@ -7,7 +7,24 @@
         : null;
 @endphp
 
-<div
+<div x-data="{ 
+        forkLoading: false,
+        forkExam() {
+            this.forkLoading = true;
+            axios.post('{{ route('exam.fork', $paper->id) }}')
+                .then(res => {
+                    window.dispatchEvent(new CustomEvent('notify', { detail: { message: res.data.message, type: 'success' } }));
+                    setTimeout(() => {
+                        window.location.href = res.data.redirect;
+                    }, 500);
+                })
+                .catch(err => {
+                    console.error(err);
+                    window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Kopyalama başarısız oldu. Giriş yaptığınızdan emin olun.', type: 'error' } }));
+                    this.forkLoading = false;
+                });
+        }
+     }"
     class="bg-[#2d2d30] border border-gray-700/50 rounded-xl overflow-hidden shadow-lg hover:border-blue-500 hover:shadow-blue-900/20 transition-all duration-300 group h-full flex flex-col relative">
 
     <div class="p-5 flex flex-col h-full">
@@ -82,16 +99,29 @@
                 </span>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
-                <button type="button" @click.prevent="$dispatch('trigger-preview', { id: {{ $paper->id }} })"
-                    class="bg-[#363639] hover:bg-[#45454a] text-gray-200 hover:text-white py-2 rounded-lg transition flex items-center justify-center border border-gray-600 hover:border-gray-500 cursor-pointer gap-2 text-xs font-bold shadow-sm">
-                    <i class="fa-solid fa-eye text-blue-400"></i> Ön İzle
-                </button>
+            <div class="space-y-2">
+                <button type="button" @click.prevent="forkExam()" :disabled="forkLoading"
+                    class="w-full bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
 
-                <button type="button" @click.prevent="$dispatch('trigger-download', { id: {{ $paper->id }} })"
-                    class="bg-[#3e3e42] text-white hover:bg-[#4e4e52] py-2 rounded-lg transition flex items-center justify-center shadow-sm cursor-pointer gap-2 text-xs font-bold border border-transparent hover:border-gray-600">
-                    <i class="fa-regular fa-file-pdf"></i> İndir
+                    {{-- Yüklenmiyorken GitHub Fork ikonu göster --}}
+                    <i x-show="!forkLoading" class="fa-solid fa-code-branch"></i>
+                    {{-- Yüklenirken dönen ikon --}}
+                    <i x-show="forkLoading" class="fa-solid fa-circle-notch animate-spin" style="display: none;"></i>
+
+                    <span x-show="!forkLoading">Kopyala ve Düzenle</span>
+                    <span x-show="forkLoading" style="display: none;">Kopyalanıyor...</span>
                 </button>
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button" @click.prevent="$dispatch('trigger-preview', { id: {{ $paper->id }} })"
+                        class="bg-[#363639] hover:bg-[#45454a] text-gray-200 hover:text-white py-2 rounded-lg transition flex items-center justify-center border border-gray-600 hover:border-gray-500 cursor-pointer gap-2 text-xs font-bold shadow-sm">
+                        <i class="fa-solid fa-eye text-blue-400"></i> Ön İzle
+                    </button>
+
+                    <button type="button" @click.prevent="$dispatch('trigger-download', { id: {{ $paper->id }} })"
+                        class="bg-[#3e3e42] text-white hover:bg-[#4e4e52] py-2 rounded-lg transition flex items-center justify-center shadow-sm cursor-pointer gap-2 text-xs font-bold border border-transparent hover:border-gray-600">
+                        <i class="fa-regular fa-file-pdf"></i> İndir
+                    </button>
+                </div>
             </div>
         </div>
     </div>

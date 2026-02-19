@@ -9,9 +9,54 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
-{
+{   
+
+
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    } 
+
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->user();
+
+            // Kullanıcıyı veritabanında ara (email veya google_id ile)
+            $user = User::where('email', $googleUser->getEmail())->first();
+
+            if ($user) {
+                // Eğer kullanıcı varsa ama google_id'si boşsa (önceden formla üye olmuşsa), google_id'yi güncelle
+                if (!$user->google_id) {
+                    $user->update([
+                        'google_id' => $googleUser->getId(),
+                        // İstersen profil resmini de güncelleyebilirsin: 'avatar_url' => $googleUser->getAvatar()
+                    ]);
+                }
+                Auth::login($user);
+            } else {
+                // Yeni Kullanıcı Oluştur
+                $user = User::create([
+                    'name' => $googleUser->getName(),
+                    'email' => $googleUser->getEmail(),
+                    'google_id' => $googleUser->getId(),
+                    'password' => Hash::make(Str::random(16)), // Rastgele bir şifre atıyoruz
+                    // 'avatar_url' => $googleUser->getAvatar(), // Google resmini kaydetmek istersen
+                ]);
+                Auth::login($user);
+            }
+
+            return redirect()->intended('/');
+
+        } catch (\Exception $e) {
+            return redirect()->route('home')->with('error', 'Google ile giriş başarısız oldu.');
+        }
+    }
+
     public function login(Request $request)
     {
         $user = $request->validate([
