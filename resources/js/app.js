@@ -574,6 +574,8 @@ Alpine.data("examCanvas", (props = {}) => ({
     allCategories: props.allCategories || [],
     categorySearch: '',
 
+    documentType: props.documentType || 'exam',
+
     get currentPageElements() {
         if (!Array.isArray(this.elements)) return [];
         return this.elements.filter(el => el.page === this.activePage);
@@ -615,6 +617,11 @@ Alpine.data("examCanvas", (props = {}) => ({
             this.tempCategories = this.initialCategories.map(c => c.id);
         }
 
+        if (window.QUIZ_TO_IMPORT) {
+            this.importQuizFromData(window.QUIZ_TO_IMPORT);
+            window.QUIZ_TO_IMPORT = null;
+        }
+
         if (this.elements.length > 0) {
             const maxPage = Math.max(...this.elements.map(el => el.page || 1));
             this.pages = Array.from({ length: maxPage }, (_, i) => i + 1);
@@ -636,6 +643,185 @@ Alpine.data("examCanvas", (props = {}) => ({
         this.$nextTick(() => {
             this.setupInteract();
         });
+    },
+    // YENİ: Sınavı Dizgiye Sokan Sihirli Fonksiyon
+    // Güncellenmiş Sihirli Fonksiyon
+    importQuizFromData(quizData) {
+        this.examTitle = quizData.title + " (Baskı Formatı)";
+        this.tempTitle = this.examTitle;
+        this.tempDescription = quizData.description || '';
+
+        if (quizData.categories && Array.isArray(quizData.categories)) {
+            this.tempCategories = quizData.categories.map(c => c.id);
+        }
+
+        // Quiz'deki soruları bizim formatımıza çevirip sayfaya (dağınık da olsa) atıyoruz
+        this.elements = [];
+        if (quizData.questions) {
+            quizData.questions.forEach((q, index) => {
+                let optionsList = q.answers ? q.answers.map(a => a.answer_text) : [];
+                this.elements.push({
+                    id: Date.now() + Math.random(),
+                    page: 1, type: 'multiple_choice',
+                    content: { number: `${index + 1}.`, question: q.question_text, point: q.points || '10', options: optionsList },
+                    x: 0, y: 0, w: 700, h: 100, // Geçici değerler, autoLayout bunu dizecek
+                    styles: { fontSize: 14, fontWeight: 'normal', textAlign: 'left', color: '#000', borderWidth: 0, backgroundColor: 'transparent' }
+                });
+            });
+        }
+
+        // Quiz'i aldık, şimdi JİLET GİBİ diz! (Varsayılan normal dizilim)
+        this.autoLayout('twocolumn');
+    },
+
+    // 2. SİHİRLİ FONKSİYON: Tüm öğeleri koruyarak otomatik dizer
+    autoLayout(layoutType = 'normal') {
+        window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
+
+        // 1. TÜM ÖĞELERİ TOPLA VE SIRALA (Sistem blokları hariç)
+        // Kullanıcının eklediği başlık, resim, soru vs. HER ŞEYİ alıyoruz.
+        let userElements = this.elements.filter(el => el.type !== 'header_block' && el.type !== 'student_info');
+
+        // Mantıklı bir sıraya dizelim: Önce sayfa numarası, sonra Y koordinatı (yukarıdan aşağı)
+        // Böylece hocanın araya koyduğu resimler sırasını kaybetmez!
+        userElements.sort((a, b) => {
+            if (a.page !== b.page) return a.page - b.page;
+            return a.y - b.y;
+        });
+
+        this.elements = []; // Sayfayı sıfırla
+        this.activePage = 1;
+        this.totalPages = 1;
+
+        // 2. SABİT AYARLAR
+        const PAGE_WIDTH = 794; const PAGE_HEIGHT = 1123; const MARGIN_Y = 60;
+        let isCompact = layoutType === 'compact' || layoutType === 'twocolumn';
+        let isTwoCol = layoutType === 'twocolumn';
+
+        let fontSize = isCompact ? 11 : 14;
+        let optSpacing = isCompact ? 18 : 25;
+        let itemSpacing = isCompact ? 8 : 15;
+
+        let itemWidth = isTwoCol ? 330 : 700;
+        let MARGIN_X = isTwoCol ? 50 : 47;
+        let COL_2_X = 414;
+
+        let currentY = MARGIN_Y;
+        let currentPage = 1;
+        let currentColumn = 1;
+
+        // 3. BAŞLIK VE ÖĞRENCİ BİLGİSİNİ YENİDEN EKLE
+        this.elements.push({
+            id: Date.now() + Math.random(), page: currentPage, type: 'header_block',
+            content: { title: this.examTitle.toUpperCase(), faculty: 'Kurum / Okul Adı', term: 'Sınav Kağıdı' },
+            x: (PAGE_WIDTH - 600) / 2, y: currentY, w: 600, h: 80,
+            styles: { fontSize: 14, fontWeight: 'bold', textAlign: 'center', color: '#000', borderWidth: 0, backgroundColor: 'transparent' }
+        });
+        currentY += 90;
+
+        this.elements.push({
+            id: Date.now() + Math.random(), page: currentPage, type: 'student_info',
+            content: { label1: 'Adı Soyadı:', val1: '', label2: 'Numara:', val2: '', label3: 'Sınıfı:', val3: '', label4: 'Puan:', val4: '' },
+            x: 47, y: currentY, w: 700, h: isCompact ? 60 : 80,
+            styles: { fontSize: fontSize, fontWeight: 'normal', textAlign: 'left', color: '#000', borderWidth: 0, backgroundColor: 'transparent' }
+        });
+        currentY += isCompact ? 70 : 100;
+
+        let currentX = MARGIN_X;
+        let columnStartY = currentY;
+        let questionCounter = 1; // Soruları numaralandırmak için ayrı sayaç (Resimleri atlamak için)
+
+        // 4. TOPLANAN TÜM ÖĞELERİ MATBAA GİBİ DİZ
+        if (userElements.length > 0) {
+            const questionTypes = ['multiple_choice', 'open_ended', 'fill_in_blanks', 'true_false'];
+
+            userElements.forEach((el) => {
+
+                let estimatedHeight = 0;
+                let currentItemWidth = itemWidth;
+
+                // A) EĞER BU BİR SORUYSA (Numaralandır ve Boyut Hesapla)
+                // A) EĞER BU BİR SORUYSA (Numaralandır ve Boyut Hesapla)
+                if (questionTypes.includes(el.type)) {
+                    el.content.number = `${questionCounter}.`;
+                    questionCounter++;
+
+                    let qText = el.content.question || '';
+                    let optionsList = el.content.options || [];
+
+                    // --- MİNİMAL VE SIKI YÜKSEKLİK HESAPLAMASI ---
+                    // Satıra sığacak harf sayısını biraz artırdık ki gereksiz satır atlamasın
+                    let charsPerLine = isTwoCol ? 42 : 95;
+                    if (isCompact) charsPerLine += 15;
+
+                    let lineHeight = isCompact ? 16 : 22; // Satır yükseklikleri (Eskisinden daha dar)
+
+                    // 1. Soru Metni: (Satır sayısı * satır yüksekliği) + 15px (Soru no ve küçük bir esneme payı)
+                    let qLines = Math.ceil((qText.length || 1) / charsPerLine);
+                    estimatedHeight = (qLines * lineHeight) + 15;
+
+                    // 2. Şıklar
+                    if (el.type === 'multiple_choice') {
+                        optionsList.forEach(opt => {
+                            let optText = opt || '';
+                            let optLines = Math.ceil((optText.length + 5) / charsPerLine) || 1;
+
+                            // Şıklar arası boşluğu sadece 4 piksele düşürdük!
+                            estimatedHeight += (optLines * lineHeight) + 4;
+                        });
+                        estimatedHeight += 10; // Sorunun bitişine minik bir pay
+                    }
+                    else if (el.type === 'open_ended') {
+                        // Klasik soru boşluğunu estetik bir seviyeye çektik
+                        estimatedHeight += isCompact ? 70 : 100;
+                    }
+                    else if (el.type === 'fill_in_blanks' || el.type === 'true_false') {
+                        estimatedHeight += 20;
+                    }
+
+                    // Soru fontunu güncel düzene göre ez
+                    el.styles.fontSize = fontSize;
+                    el.w = itemWidth;
+                }
+                // B) EĞER BU RESİM, BAŞLIK VEYA ÖZEL METİNSE
+                else {
+                    // Kullanıcının ayarladığı kendi yüksekliğini koru
+                    estimatedHeight = parseFloat(el.h) || 50;
+
+                    // Eğer çift sütuna geçilmişse ve resim sütundan genişse, resmin genişliğini sütuna uydur (Taşmayı önle)
+                    if (parseFloat(el.w) > itemWidth) {
+                        el.w = itemWidth;
+                    }
+                }
+
+                let currentItemSpacing = isTwoCol ? itemSpacing + 10 : itemSpacing;
+
+                // --- TAŞMA KONTROLÜ ---
+                if (currentY + estimatedHeight > PAGE_HEIGHT - MARGIN_Y) {
+                    if (isTwoCol && currentColumn === 1) {
+                        currentColumn = 2; currentX = COL_2_X; currentY = columnStartY;
+                    } else {
+                        currentPage++; this.totalPages = currentPage; currentColumn = 1;
+                        currentX = MARGIN_X; currentY = MARGIN_Y; columnStartY = MARGIN_Y;
+                    }
+                }
+
+                // Öğeyi güncelle ve sayfaya bas
+                el.page = currentPage;
+                el.x = currentX;
+                el.y = currentY;
+                el.h = estimatedHeight;
+
+                this.elements.push(el);
+
+                // Y koordinatını bir sonraki öğe için aşağı kaydır
+                currentY += estimatedHeight + currentItemSpacing;
+            });
+        }
+
+        this.activePage = 1;
+        window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
+        window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Tüm öğeler otomatik hizalandı!', type: 'success' } }));
     },
 
 
@@ -1500,6 +1686,84 @@ Alpine.data("libraryHandler", (props = {}) => ({
                 detail: { message: 'İndirme başladı! 📄', type: 'success' }
             }));
         }, 800);
+    }
+}));
+
+//? Study Guide (Özet) Create
+Alpine.data("studyGuideCreate", (props = {}) => ({
+    token: props.token || '',
+    fileName: null,
+    sourceFile: null,
+    isLoading: false,
+
+    // Dosya seçildiğinde çalışır
+    setFile(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.fileName = file.name;
+            this.sourceFile = file;
+        } else {
+            this.fileName = null;
+            this.sourceFile = null;
+        }
+    },
+
+    // Form submit olduğunda çalışır
+    async submitGuide() {
+        let formElement = document.getElementById('study-guide-form');
+        let textContent = document.querySelector('textarea[name="text_content"]').value;
+
+        // 1. Validasyon (En az biri dolu olmalı)
+        if (!this.sourceFile && textContent.trim() === '') {
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Lütfen bir PDF yükleyin veya metin yapıştırın!', type: 'warning' } }));
+            return;
+        }
+
+        // 2. İşlemi Başlat
+        this.isLoading = true;
+        window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
+        window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Yapay zeka dokümanı analiz ediyor, lütfen bekleyin...', type: 'info' } }));
+
+        let formData = new FormData(formElement);
+        if (this.sourceFile) {
+            formData.append('document', this.sourceFile);
+        }
+
+        try {
+            // 3. İsteği Gönder (Axios)
+            const response = await axios.post('/study-guide/generate', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRF-TOKEN': this.token
+                }
+            });
+
+            // 4. Başarılı Sonuç
+            if (response.data.success) {
+                window.dispatchEvent(new CustomEvent('notify', { detail: { message: response.data.message, type: 'success' } }));
+
+                // Editöre Yönlendir
+                setTimeout(() => {
+                    window.location.href = response.data.redirect;
+                }, 1000);
+            }
+
+        } catch (error) {
+            // 5. Hata Yönetimi
+            console.error(error);
+            let msg = 'İşlem sırasında bir hata oluştu.';
+
+            if (error.response && error.response.status === 422) {
+                msg = 'Lütfen form verilerini kontrol edin.';
+            } else if (error.response && error.response.data && error.response.data.message) {
+                msg = error.response.data.message;
+            }
+
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: msg, type: 'error' } }));
+        } finally {
+            this.isLoading = false;
+            window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
+        }
     }
 }));
 

@@ -364,4 +364,208 @@ class ExamController extends Controller
         ]);
     }
 
+
+    // Özet Çıkarma (Dosya Yükleme)
+    public function createStudyGuide()
+    {
+        return view("pages.study_quide"); 
+    }
+
+    
+    public function generateStudyGuide(Request $request)
+    {
+        // 1. Validasyon
+        $request->validate([
+            'document' => 'nullable|file|mimes:pdf,txt,docx|max:10240', // 10MB sınır
+            'text_content' => 'nullable|string',
+            'detail_level' => 'required|in:concise,detailed,exam_prep'
+        ]);
+
+        if (!$request->hasFile('document') && empty($request->text_content)) {
+            return back()->with('error', 'Lütfen bir dosya yükleyin veya metin girin.');
+        }
+
+        $apiKey = env('GEMINI_API_KEY');
+        $fileUri = null;
+
+        // 2. Dosya Yükleme (Google Gemini File API)
+        if ($request->hasFile('document')) {
+            try {
+                $file = $request->file('document');
+                $mimeType = $file->getMimeType();
+                $fileData = file_get_contents($file->getPathname());
+
+                $uploadResponse = Http::withHeaders([
+                    'X-Goog-Upload-Protocol' => 'raw',
+                    'X-Goog-Upload-Command' => 'start, upload, finalize',
+                    'X-Goog-Upload-Header-Content-Length' => $file->getSize(),
+                    'X-Goog-Upload-Header-Content-Type' => $mimeType,
+                    'Content-Type' => $mimeType,
+                ])->withBody($fileData, $mimeType)
+                ->post("https://generativelanguage.googleapis.com/upload/v1beta/files?key={$apiKey}");
+
+                if ($uploadResponse->failed()) {
+                    throw new \Exception("Gemini Upload Failed");
+                }
+                
+                $fileUri = $uploadResponse->json()['file']['uri'];
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Dosya analiz için yapay zekaya yüklenemedi: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+
+        // 3. Prompt (İstek) Kurgusu
+        $detailInstruction = match($request->detail_level) {
+            'concise' => 'Çok kısa ve öz, sadece en kritik maddeleri içeren',
+            'detailed' => 'Detaylı anlatımlı, konuyu tam kavratan',
+            'exam_prep' => 'Sınavda çıkabilecek önemli vurguları barındıran',
+            default => 'Detaylı'
+        };
+
+        $systemInstruction = "Sen uzman bir eğitimcisin. Verilen kaynağı (dosya veya metin) analiz et ve öğrencilerin çalışması için bir 'Ders Notu / Özet' oluştur.
+        
+        Detay Seviyesi: {$detailInstruction}.
+        
+        ÇIKTI FORMATI (SADECE JSON):
+        Çıktıyı SADECE aşağıdaki JSON şemasına uygun bir dizi (array) olarak ver. 
+        Markdown veya backtick (```json) kullanma. Başka hiçbir açıklama yazma.
+        
+        JSON ŞEMASI:
+        [
+            { \"type\": \"heading\", \"content\": \"Ana Başlık (Örn: I. Dünya Savaşı)\" },
+            { \"type\": \"sub_heading\", \"content\": \"Alt Başlık (Örn: Savaşın Nedenleri)\" },
+            { \"type\": \"text\", \"content\": \"Buraya açıklayıcı metin paragrafı gelecek...\" },
+            { \"type\": \"box\", \"content\": \"Önemli not, tanım veya vurgulanacak bilgi...\" }
+        ]";
+
+        $userPrompt = "KAYNAK METİN: " . ($request->text_content ?? 'Sadece dosyayı analiz et.');
+
+        // 4. Payload ve Gemini İstek
+        $parts = [];
+        if ($fileUri) {
+            $parts[] = ['file_data' => ['mime_type' => $request->file('document')->getMimeType(), 'file_uri' => $fileUri]];
+        }
+        $parts[] = ['text' => $systemInstruction . "\n" . $userPrompt];
+
+        try {
+            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(180)
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", [
+                    'contents' => [['parts' => $parts]],
+                    // Çıktıyı JSON formatında zorlamak için Config ekliyoruz
+                    'generationConfig' => ['responseMimeType' => 'application/json', 'temperature' => 0.7]
+                ]);
+
+            if ($response->failed()) {
+                 throw new \Exception("Gemini API isteği başarısız oldu.");
+            }
+
+            $data = $response->json();
+            $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '[]';
+            
+            // JSON Temizliği (Her ihtimale karşı)
+            $cleanText = preg_replace('/^```json|```$/m', '', trim($text));
+            $aiItems = json_decode($cleanText, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($aiItems)) {
+                throw new \Exception("Yapay zeka geçerli bir JSON üretemedi.");
+            }
+            // 5. Canvas İçin Elementleri Hazırlama (Düzenleme formatına çevir)
+            $elements = [];
+            $currentY = 50; 
+            // BAŞLANGIÇ Y KOORDİNATI (Hepsi 50'de üst üste binmesin diye)
+            
+            foreach ($aiItems as $item) {
+                $type = $item['type'] ?? 'text';
+                $content = $item['content'] ?? '';
+
+                // --- AKILLI MARKDOWN TEMİZLİĞİ ---
+                // 1. Kalın (**) ve İtalik (*) işaretlerini temizle ama içindeki yazıyı koru
+                $content = preg_replace('/(\*\*|\*)(.*?)\1/', '$2', $content);
+                // 2. Satır içi kod (`code`) işaretlerini temizle
+                $content = preg_replace('/`(.*?)`/', '$1', $content);
+                // 3. Liste başlarındaki tireleri (-) opsiyonel olarak madde işaretine (•) çevirebilirsin
+                $content = preg_replace('/^\-\s/m', '• ', $content);
+                
+                // Temel varsayılan (Default) Editör Ayarları
+                $fontSize = 14; 
+                $fontWeight = 'normal'; 
+                $width = 700; 
+                $height = 50;
+
+                // TİPE VE UZUNLUĞA GÖRE DİNAMİK BOYUTLANDIRMA
+                if ($type === 'heading') { 
+                    $fontSize = 22; $fontWeight = 'bold'; $height = 60; 
+                }
+                elseif ($type === 'sub_heading') { 
+                    $fontSize = 16; $fontWeight = 'bold'; $height = 50; 
+                }
+                elseif ($type === 'box') { 
+                    $width = 650; 
+                    // Kutu içindeki metin uzunsa satır sayısını hesapla
+                    $lines = ceil(mb_strlen($content) / 75);
+                    $height = ($lines * 22) + 40; // Satır + Padding payı
+                }
+                elseif ($type === 'text') {
+                    // Paragraf uzunluğuna göre yüksekliği otomatik aç
+                    // (Yaklaşık 95 karakter 1 satır eder)
+                    $lines = ceil(mb_strlen($content) / 95);
+                    $height = ($lines * 20) + 20; 
+                }
+
+                $elements[] = [
+                    'id' => time() . rand(1000, 99999),
+                    'page' => 1,
+                    'type' => $type,
+                    'content' => $content,
+                    'x' => 47, 
+                    'y' => $currentY, // HER BLOK BİR ÖNCEKİNİN ALTINA GELECEK
+                    'w' => $width,
+                    'h' => $height,
+                    'styles' => [
+                        'fontSize' => $fontSize,
+                        'fontWeight' => $fontWeight,
+                        'color' => '#000000',
+                        'textAlign' => 'left',
+                        'borderWidth' => ($type === 'box' ? 1 : 0),
+                        'borderColor' => '#000000',
+                        'backgroundColor' => ($type === 'box' ? '#f8f9fa' : 'transparent'),
+                        'padding' => ($type === 'box' ? 10 : 0)
+                    ]
+                ];
+
+                // BİR SONRAKİ BLOK İÇİN Y KOORDİNATINI AŞAĞI KAYDIR
+                $currentY += $height + 15; 
+            }
+
+            // 6. Veritabanına Kaydet (document_type = study_guide)
+            $exam = ExamPaper::create([
+                'user_id' => Auth::id(),
+                'title' => 'AI Ders Notu - ' . date('d.m.Y'),
+                'description' => 'Yapay zeka tarafından üretilmiş çalışma kağıdı.',
+                'is_public' => false,
+                'page_count' => 1,
+                'document_type' => 'study_guide',
+                'canvas_data' => $elements
+            ]);
+
+            // 7. Editöre Yönlendir (JSON Olarak Axios'a Yolla)
+            return response()->json([
+                'success' => true,
+                'message' => 'Özet başarıyla oluşturuldu! Editör hazırlanıyor...',
+                'redirect' => route('exam.edit', ['id' => $exam->id, 'auto_layout' => 'true'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'İşlem sırasında bir hata oluştu: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

@@ -14,6 +14,7 @@ use Laravel\Prompts\Output\ConsoleOutput;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use App\Models\Category;
+use App\Models\ExamPaper;
 
 class QuizController extends Controller
 {
@@ -694,5 +695,30 @@ class QuizController extends Controller
 
         // create_question.blade.php'yi kullanacağız
         return view("pages.create_question", compact("quiz"));
+    }
+
+    public function convertToExam(Request $request, Quiz $quiz)
+    {
+        // 1. Yetki kontrolü
+        if ($quiz->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Yetkisiz işlem.'], 403);
+        }
+
+        // 2. Yeni ve boş bir Sınav Kağıdı (Exam) oluştur
+        // (Model adın ExamPaper veya Exam ise ona göre değiştir)
+        $exam = ExamPaper::create([
+            'user_id' => Auth::id(),
+            'title' => $quiz->title . ' (Baskı Formatı)',
+            'description' => $quiz->description,
+            'is_public' => false,
+            'page_count' => 1,
+            'canvas_data' => [],
+            // 'canvas_data' boş kalacak, JS tarafında dolduracağız
+        ]);
+
+        return redirect()->route('exam.edit', [
+            'id' => $exam->id, 
+            'import_quiz' => $quiz->id
+        ])->with('success', 'Sınav başarıyla oluşturuldu, editör hazırlanıyor...');
     }
 }

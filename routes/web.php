@@ -44,6 +44,9 @@ Route::post('/exam/upload-image', [ExamController::class, 'uploadImage'])->name(
 Route::get('/exam/{id}/download', [ExamController::class, 'downloadPDF'])->name('exam.download');
 Route::get('/exam/{id}/preview', [ExamController::class, 'previewPDF'])->name('exam.preview');
 
+// --- Özet Çıkarma
+Route::get('/study-guide/create', [ExamController::class, 'createStudyGuide'])->name('study_guide.create');
+Route::post('/study-guide/generate', [ExamController::class, 'generateStudyGuide'])->name('study_guide.generate');
 
 Route::middleware(['auth'])->group(function () {
 
@@ -62,11 +65,10 @@ Route::middleware(['auth'])->group(function () {
     // fork
     Route::post('/exam/{id}/fork', [ExamController::class, 'fork'])->name('exam.fork');
 
-
-
     // --- Kütüphane & Silme İşlemleri ---
     Route::delete("/quiz/{quiz}/delete", [QuizController::class, "delete_quiz"])->name("quiz.delete");
     Route::get("/library", [LibraryController::class, "show_library"])->name("library.show");
     Route::post("/library/add/{quiz}", [LibraryController::class, "add_library"])->name("library.add");
     Route::delete("/library/remove/{id}", [LibraryController::class, "remove_library"])->name("library.remove");
+    Route::post('/quiz/{quiz:id}/convert-to-exam', [QuizController::class, 'convertToExam'])->name('quiz.convert_exam');
 });

@@ -9,6 +9,16 @@ class ExamPaper extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'user_id',
+        'title',
+        'description',
+        'is_public',
+        'page_count',
+        'canvas_data',
+        'document_type', // BU SATIRI EKLE
+    ];
+
     protected $guarded = [];
 
     protected $casts = [

@@ -9,8 +9,6 @@
     <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
 
 
-
-
         <div>
             <h4 class="text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-wider">EKLE</h4>
             <div class="grid grid-cols-3 gap-2">
@@ -91,6 +89,29 @@
             </div>
         </div>
 
+        <div>
+            <h4 class="text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-wider flex items-center gap-1.5">
+                OTOMATİK DİZGİ
+            </h4>
+            <div class="space-y-2">
+                <button type="button" @click="autoLayout('normal')"
+                    class="w-full text-left group bg-[#333333] hover:bg-[#3e3e42] p-2 rounded border border-[#3e3e42] hover:border-cyan-500 cursor-pointer flex items-center gap-3 transition-colors">
+                    <i class="fa-solid fa-align-justify text-cyan-500 w-4 text-center"></i>
+                    <span class="text-xs text-gray-300">Normal (Geniş)</span>
+                </button>
+                <button type="button" @click="autoLayout('compact')"
+                    class="w-full text-left group bg-[#333333] hover:bg-[#3e3e42] p-2 rounded border border-[#3e3e42] hover:border-cyan-400 cursor-pointer flex items-center gap-3 transition-colors">
+                    <i class="fa-solid fa-compress text-cyan-400 w-4 text-center"></i>
+                    <span class="text-xs text-gray-300">Normal (Dar)</span>
+                </button>
+                <button type="button" @click="autoLayout('twocolumn')"
+                    class="w-full text-left group bg-[#333333] hover:bg-[#3e3e42] p-2 rounded border border-[#3e3e42] hover:border-indigo-400 cursor-pointer flex items-center gap-3 transition-colors">
+                    <i class="fa-solid fa-columns text-indigo-400 w-4 text-center"></i>
+                    <span class="text-xs text-gray-300">Çift Sütun (Yan Yana)</span>
+                </button>
+            </div>
+        </div>
+
 
         <div class="pt-4 border-t border-[#3e3e42]">
             <h4 class="text-xs font-bold text-blue-400 uppercase mb-3 tracking-wider">AI ILE SORU OLUSTUR</h4>
@@ -137,7 +158,7 @@
 
                             <div class="flex flex-col leading-tight">
                                 <span class="text-xs font-bold text-gray-200">
-                                    (AI) <span x-text="group.typeName"></span>
+                                    <span x-text="group.typeName"></span>
                                 </span>
                                 <span class="text-[10px] text-gray-400">
                                     <span class="text-indigo-400 font-bold" x-text="group.count"></span> adet kaldı

@@ -3,12 +3,28 @@
 
 @section("content")
 
+    @if(request()->has('import_quiz'))
+        @php
+            $sourceQuiz = \App\Models\Quiz::with('questions.answers', 'categories')->find(request('import_quiz'));
+        @endphp
+
+        @if($sourceQuiz && $sourceQuiz->user_id === Auth::id())
+            <script>
+                // Bu veriyi app.js tarafındaki init() fonksiyonu yakalayacak
+                window.QUIZ_TO_IMPORT = @json($sourceQuiz);
+            </script>
+        @endif
+    @endif
+
+
+
     <div x-data="examCanvas({{ Js::from([
         'token' => csrf_token(),
         'initialElements' => isset($examPaper) ? $examPaper->canvas_data : [],
         'examTitle' => isset($examPaper) ? $examPaper->title : 'Yeni Sınav Kağıdı',
         'examId' => isset($examPaper) ? $examPaper->id : null, // ID varsa Update 
-        'allCategories' => $categories
+        'allCategories' => $categories,
+        'documentType' => $examPaper->document_type,
     ]) }})" class="flex relative w-full h-[calc(100vh-64px)] bg-[#1e1e1e] font-sans overflow-hidden">
 
 
@@ -87,8 +103,8 @@
                                         <button @click="toggleCategory(cat.id)"
                                             class="px-2 py-1.5 rounded text-[10px] font-medium transition-all border select-none text-left truncate flex items-center justify-between group"
                                             :class="tempCategories.includes(cat.id) 
-                                ? 'bg-blue-900/30 border-blue-500 text-blue-400' 
-                                : 'bg-[#2d2d2d] border-gray-600 text-gray-300 hover:border-gray-500 hover:text-white'">
+                                        ? 'bg-blue-900/30 border-blue-500 text-blue-400' 
+                                        : 'bg-[#2d2d2d] border-gray-600 text-gray-300 hover:border-gray-500 hover:text-white'">
 
                                             <span x-text="cat.name"></span>
 

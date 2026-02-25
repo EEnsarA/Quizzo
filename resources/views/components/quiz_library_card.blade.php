@@ -52,18 +52,26 @@
         </div>
 
         {{-- BUTONLAR --}}
-        <div class="mt-auto flex gap-2">
+        <div class="mt-auto flex gap-1.5">
             @if($myQuiz)
-                {{-- DÜZENLE BUTONU (Sadece Kendi Quizimse) --}}
-                <a href="{{ route('quiz.edit', $quiz) }}" class="flex-1 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                {{-- DÜZENLE BUTONU --}}
+                <a href="{{ route('quiz.edit', $quiz) }}" title="Sınavı Düzenle" class="flex-1 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 py-2 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 overflow-hidden">
+                    <i class="fa-solid fa-pen-to-square"></i> <span class="truncate">Düzenle</span>
                 </a>
+
+                {{-- SINAV KAĞIDINA ÇEVİR BUTONU --}}
+                <form action="{{ route('quiz.convert_exam', $quiz->id) }}" method="POST" class="flex-1 flex" title="Sınav Kağıdına Çevir">
+                    @csrf
+                    <button type="submit" class="w-full bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-600/30 py-2 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 overflow-hidden cursor-pointer">
+                        <i class="fa-solid fa-print"></i> <span class="truncate">Kağıda Çevir</span>
+                    </button>
+                </form>
                 
-                {{-- Silme Butonu (Form ile) --}}
-                <form action="{{ route('quiz.delete', $quiz->id) }}" method="POST" onsubmit="return confirm('Silmek istediğine emin misin?')" class="w-10">
+                {{-- SİL BUTONU --}}
+                <form action="{{ route('quiz.delete', $quiz->id) }}" method="POST" onsubmit="return confirm('Silmek istediğine emin misin?')" class="w-9 sm:w-10 shrink-0">
                     @csrf @method('DELETE')
-                    <button type="submit" class="w-full h-full bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/30 rounded-lg flex items-center justify-center transition">
-                        <i class="fa-solid fa-trash"></i>
+                    <button type="submit" title="Sınavı Sil" class="w-full h-full bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/30 rounded-lg flex items-center justify-center transition cursor-pointer">
+                        <i class="fa-solid fa-trash text-xs"></i>
                     </button>
                 </form>
             @else
