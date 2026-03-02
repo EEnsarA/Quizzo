@@ -11,84 +11,100 @@ use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
-   public function index(Request $request)
-{
+public function index(Request $request)
+    {
         // 1. URL'den aktif sekmeyi al (Yoksa 'papers' varsayılan)
-        $activeTab = $request->get('tab', 'papers');
+        $activeTab = $request->get('tab', 'quizzes');
 
         // --- 1. SINAV KAĞITLARI SORGUSU ---
-        $paperQuery = ExamPaper::with(['categories', 'user'])->where('is_public', true);
+        // Sadece 'exam' olanları (veya eskiden kalma null olanları) getir
+        $paperQuery = ExamPaper::with(['categories', 'user'])
+            ->where('is_public', true)
+            ->where(function($q) {
+                $q->where('document_type', 'exam')->orWhereNull('document_type');
+            });
 
-        // --- 2. ONLINE QUIZLER SORGUSU ---
-        // categories ilişkisini de (with) çekiyoruz ki N+1 sorunu olmasın
+        // --- 2. ÖZETLER / DERS NOTLARI SORGUSU (YENİ) ---
+        // Sadece 'study_guide' olanları getir
+        $guideQuery = ExamPaper::with(['categories', 'user'])
+            ->where('is_public', true)
+            ->where('document_type', 'study_guide');
+
+        // --- 3. ONLINE QUIZLER SORGUSU ---
         $quizQuery = Quiz::with(['user', 'results', 'categories'])
             ->withCount(['questions', 'results']); 
 
-        // --- 3. KULLANICI FİLTRESİ ---
+        // --- 4. KULLANICI FİLTRESİ ---
         if (Auth::check()) {
             $userId = Auth::id();
+            
+            // Kendi içeriklerini ana sayfada görmesin
             $paperQuery->where('user_id', '!=', $userId);
+            $guideQuery->where('user_id', '!=', $userId); // Özetler için de geçerli
             
             $user_library_ids = UserLibrary::where('user_id', $userId)->pluck('quiz_id');
             $quizQuery->where('user_id', '!=', $userId)->whereNotIn('id', $user_library_ids);
         }
 
-        // --- 4. ARAMA FİLTRESİ (BÜYÜK/KÜÇÜK HARF DUYARSIZ - POSTGRESQL) ---
+        // --- 5. ARAMA FİLTRESİ ---
         if ($request->filled('q')) {
             $search = $request->get('q');
             
-            // PostgreSQL için 'ILIKE' kullanılır. Eğer MySQL kullansaydın 'LIKE' yeterliydi.
-            
             // Kağıtlarda Ara
             $paperQuery->where(function($q) use ($search) {
-                $q->where('title', 'ilike', "%{$search}%")
-                  ->orWhere('description', 'ilike', "%{$search}%");
+                $q->where('title', 'ilike', "%{$search}%")->orWhere('description', 'ilike', "%{$search}%");
+            });
+
+            // Özetlerde Ara
+            $guideQuery->where(function($q) use ($search) {
+                $q->where('title', 'ilike', "%{$search}%")->orWhere('description', 'ilike', "%{$search}%");
             });
 
             // Quizlerde Ara
             $quizQuery->where(function($q) use ($search) {
-                $q->where('title', 'ilike', "%{$search}%")
-                  ->orWhere('description', 'ilike', "%{$search}%");
+                $q->where('title', 'ilike', "%{$search}%")->orWhere('description', 'ilike', "%{$search}%");
             });
         }
 
-        // --- 5. KATEGORİ FİLTRESİ (HEM PAPER HEM QUIZ İÇİN) ---
+        // --- 6. KATEGORİ FİLTRESİ ---
         if ($request->filled('category')) {
             $catId = $request->get('category');
             
-            // Paper Filtrele
-            $paperQuery->whereHas('categories', function($q) use ($catId) {
+            $categoryFilter = function($q) use ($catId) {
                 $q->where('categories.id', $catId);
-            });
+            };
 
-            // Quiz Filtrele (Artık çalışır çünkü pivot tabloyu kurduk)
-            $quizQuery->whereHas('categories', function($q) use ($catId) {
-                $q->where('categories.id', $catId);
-            });
+            $paperQuery->whereHas('categories', $categoryFilter);
+            $guideQuery->whereHas('categories', $categoryFilter); // Özetler için kategori filtresi
+            $quizQuery->whereHas('categories', $categoryFilter);
         }
 
-        // --- 6. SIRALAMA ---
+        // --- 7. SIRALAMA ---
         $sort = $request->get('sort', 'newest');
 
         if ($sort === 'popular') {
             $paperQuery->orderByDesc('downloads_count'); 
+            $guideQuery->orderByDesc('downloads_count'); // Özetler için en çok indirilenler
             $quizQuery->orderByDesc('results_count');    
         } else {
             $paperQuery->latest(); 
+            $guideQuery->latest();
             $quizQuery->latest();
         }
 
-        // --- 7. VERİLERİ ÇEK ---
-        // append() ile filtreleri sayfalama linklerine ekliyoruz.
-        // Ayrıca 'tab' bilgisini de ekliyoruz ki 2. sayfaya geçince sekme değişmesin.
+        // --- 8. VERİLERİ ÇEK VE SAYFALA ---
         $papers = $paperQuery->paginate(12, ['*'], 'papers_page')
             ->appends(array_merge($request->all(), ['tab' => 'papers']));
+            
+        $guides = $guideQuery->paginate(12, ['*'], 'guides_page')
+            ->appends(array_merge($request->all(), ['tab' => 'guides']));
             
         $quizzes = $quizQuery->paginate(12, ['*'], 'quizzes_page')
             ->appends(array_merge($request->all(), ['tab' => 'quizzes']));
 
         $categories = Category::orderBy('name')->get();
 
-        return view("pages.home", compact('papers', 'quizzes', 'categories', 'activeTab'));
+        // View'a $guides değişkenini de yolluyoruz
+        return view("pages.home", compact('papers', 'guides', 'quizzes', 'categories', 'activeTab'));
     }
 }

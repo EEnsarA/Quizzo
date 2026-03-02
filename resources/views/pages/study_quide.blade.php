@@ -3,7 +3,12 @@
 @section("content")
 
     <div class="flex flex-col h-[calc(100vh-theme(spacing.16))] bg-[#1e1e1e] text-[#cccccc] font-sans overflow-hidden"
-        x-data="studyGuideCreate({ token: '{{ csrf_token() }}' })">
+        x-data="studyGuideCreate({
+             token: '{{ csrf_token() }}',
+             allCategories: {{ Js::from($categories) }},
+             selectedCategories: [] ,
+
+             })">
 
         <form id="study-guide-form" @submit.prevent="submitGuide" class="flex flex-col h-full">
             @csrf
@@ -103,6 +108,70 @@
                                         class="w-full bg-[#1e1e1e] border border-[#3e3e42] focus:border-indigo-500 rounded-lg p-3 text-sm text-white focus:outline-none focus:ring-0 transition-all placeholder-gray-600 resize-none custom-scrollbar"
                                         placeholder="Özetlenecek ders notunu, makaleyi veya uzun metni buraya yapıştırın..."></textarea>
                                 </div>
+
+                                {{-- KATEGORİLER (Arama Özellikli) --}}
+                                <div class="group mt-4 border-t border-[#3e3e42] pt-4">
+                                    <label
+                                        class="block text-[10px] font-bold text-gray-500 mb-1.5 group-focus-within:text-blue-500 transition-colors">KATEGORİLER</label>
+
+                                    <template x-for="catId in selectedCategories" :key="catId">
+                                        <input type="hidden" name="categories[]" :value="catId">
+                                    </template>
+
+                                    <div
+                                        class="bg-[#1e1e1e] border border-[#3e3e42] focus-within:border-blue-500 rounded-lg p-3 transition-all">
+                                        {{-- Seçili Olanlar --}}
+                                        <div class="flex flex-wrap gap-2 mb-2" x-show="selectedCategories.length > 0">
+                                            <template x-for="catId in selectedCategories" :key="catId">
+                                                <span
+                                                    class="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold bg-blue-600/20 text-blue-400 border border-blue-500/30">
+                                                    <span x-text="getCategoryName(catId)"></span>
+                                                    <button type="button" @click="toggleCategory(catId)"
+                                                        class="ml-2 hover:text-white focus:outline-none">
+                                                        <i class="fa-solid fa-xmark"></i>
+                                                    </button>
+                                                </span>
+                                            </template>
+                                        </div>
+
+                                        {{-- Arama --}}
+                                        <div class="relative mb-2">
+                                            <i
+                                                class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-600 text-xs"></i>
+                                            <input type="text" x-model="categorySearch"
+                                                class="w-full bg-[#252526] border border-[#3e3e42] rounded px-8 py-1.5 text-xs text-white focus:outline-none placeholder-gray-600"
+                                                placeholder="Kategori ara... (Örn: Tarih)">
+                                            <button type="button" x-show="categorySearch.length > 0"
+                                                @click="categorySearch = ''"
+                                                class="absolute right-3 top-2.5 text-gray-500 hover:text-white">
+                                                <i class="fa-solid fa-times text-xs"></i>
+                                            </button>
+                                        </div>
+
+                                        {{-- Liste --}}
+                                        <div class="max-h-32 overflow-y-auto custom-scrollbar">
+                                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                <template x-for="cat in filteredCategories" :key="cat.id">
+                                                    <button type="button" @click="toggleCategory(cat.id)"
+                                                        class="px-2 py-1.5 rounded text-[10px] font-medium transition-all border text-left truncate flex items-center justify-between group/btn"
+                                                        :class="selectedCategories.includes(cat.id) 
+                                                                ? 'bg-blue-900/30 border-blue-500 text-blue-400' 
+                                                                : 'bg-[#2d2d30] border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200'">
+                                                        <span x-text="cat.name"></span>
+                                                        <i x-show="selectedCategories.includes(cat.id)"
+                                                            class="fa-solid fa-check text-xs"></i>
+                                                        <i x-show="!selectedCategories.includes(cat.id)"
+                                                            class="fa-solid fa-plus text-xs opacity-0 group-hover/btn:opacity-100 transition-opacity"></i>
+                                                    </button>
+                                                </template>
+                                                <div x-show="filteredCategories.length === 0"
+                                                    class="col-span-full text-center py-2 text-gray-600 text-xs italic">
+                                                    "<span x-text="categorySearch"></span>" ile eşleşen kategori bulunamadı.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -136,6 +205,83 @@
                                                 class="fa-solid fa-chevron-down text-xs"></i></div>
                                     </div>
                                 </div>
+
+                                {{-- Dil, Zorluk ve Tema (2'li Grid, Sonuncu Tam Satır) --}}
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    {{-- Çıktı Dili --}}
+                                    <div class="group">
+                                        <label
+                                            class="block text-[10px] font-bold text-gray-500 mb-1.5 group-focus-within:text-blue-500 transition-colors">ÇIKTI
+                                            DİLİ</label>
+                                        <div class="relative">
+                                            <i
+                                                class="fa-solid fa-language absolute left-3 top-3.5 text-gray-600 text-xs z-10"></i>
+                                            <select name="output_language"
+                                                class="w-full bg-[#1e1e1e] border border-[#3e3e42] focus:border-blue-500 rounded-lg py-2.5 pl-8 pr-3 text-sm text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer transition-all">
+                                                <option value="auto" selected>Orijinal</option>
+                                                <option value="Türkçe">Türkçe'ye Çevir</option>
+                                                <option value="İngilizce">İngilizce'ye Çevir</option>
+                                            </select>
+                                            <div class="absolute right-3 top-3.5 pointer-events-none text-gray-500"><i
+                                                    class="fa-solid fa-chevron-down text-xs"></i></div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Anlatım Dili (Zorluk) --}}
+                                    <div class="group">
+                                        <label
+                                            class="block text-[10px] font-bold text-gray-500 mb-1.5 group-focus-within:text-blue-500 transition-colors">ANLATIM
+                                            DİLİ</label>
+                                        <div class="relative">
+                                            <i
+                                                class="fa-solid fa-brain absolute left-3 top-3.5 text-gray-600 text-xs z-10"></i>
+                                            <select name="tone"
+                                                class="w-full bg-[#1e1e1e] border border-[#3e3e42] focus:border-blue-500 rounded-lg py-2.5 pl-8 pr-3 text-sm text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer transition-all">
+                                                <option value="standard" selected>Standart</option>
+                                                <option
+                                                    value="5 yaşındaki bir çocuğun veya konuya hiç hakim olmayan birinin anlayacağı kadar basit ve sade">
+                                                    Basitleştirilmiş</option>
+                                                <option value="Akademik, profesyonel ve ileri düzey terimler içeren">
+                                                    Akademik</option>
+                                            </select>
+                                            <div class="absolute right-3 top-3.5 pointer-events-none text-gray-500"><i
+                                                    class="fa-solid fa-chevron-down text-xs"></i></div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Görsel Tema (md:col-span-2 ile tam genişlik alır) --}}
+                                    <div class="group md:col-span-2">
+                                        <label
+                                            class="block text-[10px] font-bold text-gray-500 mb-1.5 group-focus-within:text-blue-500 transition-colors">GÖRSEL
+                                            TEMA</label>
+                                        <div class="relative">
+                                            <i
+                                                class="fa-solid fa-palette absolute left-3 top-3.5 text-gray-600 text-xs z-10"></i>
+                                            <select name="color_theme"
+                                                class="w-full bg-[#1e1e1e] border border-[#3e3e42] focus:border-blue-500 rounded-lg py-2.5 pl-8 pr-3 text-sm text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer transition-all">
+                                                <option value="bw" selected>Siyah Beyaz (Baskı Dostu)</option>
+                                                <option value="colored">Renkli & Emojili</option>
+                                            </select>
+                                            <div class="absolute right-3 top-3.5 pointer-events-none text-gray-500"><i
+                                                    class="fa-solid fa-chevron-down text-xs"></i></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Özel Talimatlar / Odak Noktası --}}
+                                <div class="group mt-4">
+                                    <label
+                                        class="block text-[10px] font-bold text-gray-500 mb-1.5 group-focus-within:text-blue-500 transition-colors">ÖZEL
+                                        TALİMATLAR</label>
+                                    <div class="relative">
+                                        <i
+                                            class="fa-solid fa-bullseye absolute left-3 top-3.5 text-gray-600 text-xs z-10"></i>
+                                        <textarea name="custom_instructions" rows="3"
+                                            class="w-full bg-[#1e1e1e] border border-[#3e3e42] focus:border-blue-500 rounded-lg py-2.5 pl-8 pr-3 text-sm text-white focus:outline-none focus:ring-0 transition-all placeholder-gray-600 resize-none custom-scrollbar"
+                                            placeholder="Örn: Sadece 3. üniteye odaklan, önemli kişileri maddeler halinde yaz, tarihleri es geç..."></textarea>
+                                    </div>
+                                </div>
+
 
                                 {{-- Bilgi Kutusu --}}
                                 <div

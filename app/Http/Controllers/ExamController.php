@@ -272,7 +272,7 @@ class ExamController extends Controller
         {$rulesText}
 
         ÇIKTI FORMATI (JSON):
-        Aşağıdaki JSON şemasına sadık kal. Her 'GRUP' için ayrı bir dizi elemanı oluştur.
+        Aşağıdaki JSON şemasına kesinlikle sadık kal. Her 'GRUP' için ayrı bir dizi elemanı oluştur.
         
         {
         \"groups\": [
@@ -283,8 +283,8 @@ class ExamController extends Controller
             \"questions\": [
                 { 
                     \"question\": \"Soru metni...\",
-                    \"options\": [\"A şıkkı\", \"B şıkkı\", \"C şıkkı\", \"D şıkkı\"], (Sadece çoktan seçmeli ise)
-                    \"answer\": \"Doğru cevap veya anahtar kelime\",
+                    \"options\": [\"A) Seçenek\", \"B) Seçenek\", \"C) Seçenek\", \"D) Seçenek\"], // (Sadece multiple_choice ise doldur, yoksa boş dizi bırak)
+                    \"answer\": \"B\", // DİKKAT: Eğer multiple_choice ise SADECE doğru şıkkın harfini (A, B, C, D) yaz. Eğer true_false ise SADECE 'Doğru' veya 'Yanlış' yaz. Eğer fill_in_blanks ise boşluklara gelecek kelimeleri virgülle ayırarak yaz. Eğer open_ended ise kısa ve öz bir örnek cevap yaz.,
                     \"point\": \"10\"
                 }
             ]
@@ -368,7 +368,9 @@ class ExamController extends Controller
     // Özet Çıkarma (Dosya Yükleme)
     public function createStudyGuide()
     {
-        return view("pages.study_quide"); 
+        $categories = Category::all();
+        return view("pages.study_quide",compact("categories")); 
+        
     }
 
     
@@ -378,12 +380,17 @@ class ExamController extends Controller
         $request->validate([
             'document' => 'nullable|file|mimes:pdf,txt,docx|max:10240', // 10MB sınır
             'text_content' => 'nullable|string',
-            'detail_level' => 'required|in:concise,detailed,exam_prep'
+            'detail_level' => 'required|in:concise,detailed,exam_prep',
+            'custom_instructions' => 'nullable|string|max:2500',
+            'output_language' => 'nullable|string', 
+            'tone' => 'nullable|string' ,
         ]);
 
         if (!$request->hasFile('document') && empty($request->text_content)) {
             return back()->with('error', 'Lütfen bir dosya yükleyin veya metin girin.');
         }
+
+        set_time_limit(300); // Süreyi 5 dakikaya (300 saniye) çıkarır
 
         $apiKey = env('GEMINI_API_KEY');
         $fileUri = null;
@@ -418,7 +425,8 @@ class ExamController extends Controller
             }
         }
 
-        // 3. Prompt (İstek) Kurgusu
+        
+        // 3. Prompt (İstek) Kurgusu (Sertleştirilmiş Kurallar)
         $detailInstruction = match($request->detail_level) {
             'concise' => 'Çok kısa ve öz, sadece en kritik maddeleri içeren',
             'detailed' => 'Detaylı anlatımlı, konuyu tam kavratan',
@@ -426,23 +434,42 @@ class ExamController extends Controller
             default => 'Detaylı'
         };
 
-        $systemInstruction = "Sen uzman bir eğitimcisin. Verilen kaynağı (dosya veya metin) analiz et ve öğrencilerin çalışması için bir 'Ders Notu / Özet' oluştur.
-        
+        $systemInstruction = "Sen uzman bir eğitimcisin. Verilen kaynağı analiz et ve bir 'Ders Notu / Özet' oluştur.
         Detay Seviyesi: {$detailInstruction}.
         
-        ÇIKTI FORMATI (SADECE JSON):
-        Çıktıyı SADECE aşağıdaki JSON şemasına uygun bir dizi (array) olarak ver. 
-        Markdown veya backtick (```json) kullanma. Başka hiçbir açıklama yazma.
+        ÇOK ÖNEMLİ KURALLAR:
+        1. Çıktın sadece düz metin destekleyen bir çizim motoruna gidecek. Bu yüzden KESİNLİKLE satır içi markdown (**kalın**, *italik*, `kod`) KULLANMA.
+        2. LİSTELER: Madde işaretli listeleri KESİNLİKLE 'box' olarak verme! Bunları 'text' tipi olarak ver ve her bir maddenin başına '• ' (yuvarlak madde imi) koy.
+        3. KUTULAR: Sadece çok kritik uyarıları ve formülleri 'box' objesi olarak ver.
+        4. KODLAR: Yazılım kodlarını, terminal komutlarını veya '#include <...>' gibi yapıları kesinlikle 'code' objesi olarak ver.
         
-        JSON ŞEMASI:
+        ÇIKTI FORMATI (SADECE JSON):
         [
-            { \"type\": \"heading\", \"content\": \"Ana Başlık (Örn: I. Dünya Savaşı)\" },
-            { \"type\": \"sub_heading\", \"content\": \"Alt Başlık (Örn: Savaşın Nedenleri)\" },
-            { \"type\": \"text\", \"content\": \"Buraya açıklayıcı metin paragrafı gelecek...\" },
-            { \"type\": \"box\", \"content\": \"Önemli not, tanım veya vurgulanacak bilgi...\" }
+            { \"type\": \"heading\", \"content\": \"Ana Başlık\" },
+            { \"type\": \"sub_heading\", \"content\": \"Alt Başlık\" },
+            { \"type\": \"text\", \"content\": \"Düz açıklayıcı paragraf metni.\" },
+            { \"type\": \"text\", \"content\": \"• Birinci madde\n• İkinci madde\n• Üçüncü madde\" },
+            { \"type\": \"box\", \"content\": \"Önemli not, tanım, formül veya uyarı.\" },
+            { \"type\": \"code\", \"content\": \"#include <iostream>\n\nint main() {\n    return 0;\n}\" }  
         ]";
+        
+        $customFocus = "";
+        if (!empty($request->custom_instructions)) {
+            $customFocus = "\n\nKULLANICININ ÖZEL TALİMATI: \"" . $request->custom_instructions . "\"\nBu talimata kesinlikle uymalısın.";
+        }
 
-        $userPrompt = "KAYNAK METİN: " . ($request->text_content ?? 'Sadece dosyayı analiz et.');
+        $languageInstruction = "";
+        if (!empty($request->output_language) && $request->output_language !== 'auto') {
+            $languageInstruction = "\n\nÇIKTI DİLİ: Özeti KESİNLİKLE " . $request->output_language . " dilinde oluştur.";
+        }
+
+        $toneInstruction = "";
+        if (!empty($request->tone) && $request->tone !== 'standard') {
+            $toneInstruction = "\n\nANLATIM TARZI VE ZORLUK: Anlatım dilini şu seviyeye göre uyarla: " . $request->tone . ".";
+        }
+
+        // Bütün komutları birleştir
+        $userPrompt = "KAYNAK METİN: " . ($request->text_content ?? 'Sadece dosyayı analiz et.') . $customFocus . $languageInstruction . $toneInstruction;
 
         // 4. Payload ve Gemini İstek
         $parts = [];
@@ -474,90 +501,137 @@ class ExamController extends Controller
             if (json_last_error() !== JSON_ERROR_NONE || !is_array($aiItems)) {
                 throw new \Exception("Yapay zeka geçerli bir JSON üretemedi.");
             }
-            // 5. Canvas İçin Elementleri Hazırlama (Düzenleme formatına çevir)
             $elements = [];
-            $currentY = 50; 
-            // BAŞLANGIÇ Y KOORDİNATI (Hepsi 50'de üst üste binmesin diye)
-            
+            $currentY = 60; 
+            $currentPage = 1; 
+            $pageHeightLimit = 1000; 
+
             foreach ($aiItems as $item) {
-                $type = $item['type'] ?? 'text';
-                $content = $item['content'] ?? '';
-
-                // --- AKILLI MARKDOWN TEMİZLİĞİ ---
-                // 1. Kalın (**) ve İtalik (*) işaretlerini temizle ama içindeki yazıyı koru
-                $content = preg_replace('/(\*\*|\*)(.*?)\1/', '$2', $content);
-                // 2. Satır içi kod (`code`) işaretlerini temizle
-                $content = preg_replace('/`(.*?)`/', '$1', $content);
-                // 3. Liste başlarındaki tireleri (-) opsiyonel olarak madde işaretine (•) çevirebilirsin
-                $content = preg_replace('/^\-\s/m', '• ', $content);
+                $aiType = $item['type'] ?? 'text';
+                $content = trim($item['content'] ?? '');
                 
-                // Temel varsayılan (Default) Editör Ayarları
-                $fontSize = 14; 
-                $fontWeight = 'normal'; 
-                $width = 700; 
-                $height = 50;
+                if (empty($content)) continue; 
+                
+                $content = str_replace('**', '', $content); 
+                $content = str_replace('`', '', $content);  
+                $content = preg_replace('/^[\-\*]\s/m', '• ', $content); 
+                
+                // --- AKIL FİLTRESİ ---
+                // Eğer AI inat edip listeyi (•) veya uzun bir yazıyı kutu yaparsa, zorla texte çevir!
+                if ($aiType === 'box' && (strpos($content, '•') !== false || mb_strlen($content) > 150)) {
+                    $aiType = 'text';
+                }
+                
+                // --- KULLANICI TEMA SEÇİMİ (Döngünün hemen içine ekle) ---
+                $isColored = ($request->color_theme === 'colored');
 
-                // TİPE VE UZUNLUĞA GÖRE DİNAMİK BOYUTLANDIRMA
-                if ($type === 'heading') { 
-                    $fontSize = 22; $fontWeight = 'bold'; $height = 60; 
+                // --- SENİN ORİJİNAL KODLARIN VE DEĞİŞKENLERİN BAŞLIYOR ---
+                $elementType = in_array($aiType, ['box', 'code']) ? 'text' : $aiType;
+
+                $fontSize = 14; $fontWeight = 'normal'; $width = 700; $height = 50;
+                $backgroundColor = 'transparent'; $borderWidth = 0; $fontFamily = 'sans-serif';
+                $textColor = '#000000'; $borderColor = '#000000';
+
+                if ($aiType === 'heading') { 
+                    $fontSize = 22; $fontWeight = 'bold'; 
+                    // YENİ: Renkliyse Kırmızı, yoksa standart siyah
+                    if ($isColored) $textColor = '#d32f2f'; 
+                    $lines = ceil(mb_strlen($content) / 40); 
+                    $height = ($lines * 35) + 30; 
                 }
-                elseif ($type === 'sub_heading') { 
-                    $fontSize = 16; $fontWeight = 'bold'; $height = 50; 
+                elseif ($aiType === 'sub_heading') { 
+                    $fontSize = 16; $fontWeight = 'bold'; 
+                    // YENİ: Renkliyse Açık Kırmızı/Bordo tonu, yoksa siyah
+                    if ($isColored) $textColor = '#ef4444'; 
+                    $lines = ceil(mb_strlen($content) / 60); 
+                    $height = ($lines * 28) + 25;
                 }
-                elseif ($type === 'box') { 
-                    $width = 650; 
-                    // Kutu içindeki metin uzunsa satır sayısını hesapla
-                    $lines = ceil(mb_strlen($content) / 75);
-                    $height = ($lines * 22) + 40; // Satır + Padding payı
+                elseif ($aiType === 'box') { 
+                    $width = 700; 
+                    $borderWidth = 0; 
+                    $backgroundColor = 'transparent'; 
+                    $fontWeight = 'bold'; 
+                    
+                    // YENİ: Renkliyse raptiye ve kırmızı, siyah beyazsa ünlem ve siyah (Senin orijinalindeki gibi)
+                    if ($isColored) {
+                        $textColor = '#d32f2f';
+                        $content = "📌 " . $content;
+                    } else {
+                        $content = "! " . $content;
+                    }
+                    
+                    $lines = ceil(mb_strlen($content) / 90); 
+                    $height = ($lines * 20) + 20;
                 }
-                elseif ($type === 'text') {
-                    // Paragraf uzunluğuna göre yüksekliği otomatik aç
-                    // (Yaklaşık 95 karakter 1 satır eder)
-                    $lines = ceil(mb_strlen($content) / 95);
-                    $height = ($lines * 20) + 20; 
+                elseif ($aiType === 'code') {
+                    $width = 680; $borderWidth = 1; 
+                    $backgroundColor = '#1e1e1e'; 
+                    $borderColor = '#333333'; 
+                    $fontSize = 13; $fontFamily = 'monospace'; 
+                    
+                    // YENİ: Orijinalinde yazı gri/beyazdı (#d4d4d4). Renkliyse Yeşil (#4ade80) olacak.
+                    $textColor = $isColored ? '#4ade80' : '#d4d4d4'; 
+                    
+                    $manualLines = substr_count($content, "\n") + 1; 
+                    $autoLines = ceil(mb_strlen($content) / 80);
+                    $lines = max($manualLines, $autoLines); 
+                    
+                    $height = ($lines * 18) + 40; 
+                }
+                elseif ($aiType === 'text') {
+                    $manualLines = substr_count($content, "\n") + 1;
+                    $autoLines = ceil(mb_strlen($content) / 75); 
+                    $lines = max($manualLines, $autoLines);
+                    $height = ($lines * 22) + 30;
+                }
+
+                if ($currentY + $height > $pageHeightLimit) {
+                    $currentPage++;
+                    $currentY = 60; 
                 }
 
                 $elements[] = [
                     'id' => time() . rand(1000, 99999),
-                    'page' => 1,
-                    'type' => $type,
+                    'page' => $currentPage,
+                    'type' => $elementType,
                     'content' => $content,
-                    'x' => 47, 
-                    'y' => $currentY, // HER BLOK BİR ÖNCEKİNİN ALTINA GELECEK
-                    'w' => $width,
-                    'h' => $height,
+                    'x' => 47, 'y' => $currentY, 'w' => $width, 'h' => $height,
                     'styles' => [
                         'fontSize' => $fontSize,
                         'fontWeight' => $fontWeight,
-                        'color' => '#000000',
+                        'fontFamily' => $fontFamily,
+                        'color' => $textColor,
                         'textAlign' => 'left',
-                        'borderWidth' => ($type === 'box' ? 1 : 0),
-                        'borderColor' => '#000000',
-                        'backgroundColor' => ($type === 'box' ? '#f8f9fa' : 'transparent'),
-                        'padding' => ($type === 'box' ? 10 : 0)
+                        'borderWidth' => $borderWidth,
+                        'borderColor' => $borderColor,
+                        'backgroundColor' => $backgroundColor,
+                        'padding' => ($borderWidth > 0 ? 15 : 0) // Kutu ve Kod için rahat iç boşluk
                     ]
                 ];
-
-                // BİR SONRAKİ BLOK İÇİN Y KOORDİNATINI AŞAĞI KAYDIR
-                $currentY += $height + 15; 
+                
+                $currentY += $height + 25; 
             }
 
-            // 6. Veritabanına Kaydet (document_type = study_guide)
+            // 6. Veritabanına Kaydet (page_count kısmını dinamik yaptık!)
             $exam = ExamPaper::create([
                 'user_id' => Auth::id(),
                 'title' => 'AI Ders Notu - ' . date('d.m.Y'),
                 'description' => 'Yapay zeka tarafından üretilmiş çalışma kağıdı.',
                 'is_public' => false,
-                'page_count' => 1,
+                'page_count' => $currentPage, // Kaç sayfa sürdüyse onu kaydet
                 'document_type' => 'study_guide',
                 'canvas_data' => $elements
             ]);
+            
+            if ($request->has('categories') && is_array($request->categories)) {
+                $exam->categories()->sync($request->categories);
+            }
 
-            // 7. Editöre Yönlendir (JSON Olarak Axios'a Yolla)
+            // 7. Yönlendirmedeki gereksiz auto_layout parametresini sildik!
             return response()->json([
                 'success' => true,
                 'message' => 'Özet başarıyla oluşturuldu! Editör hazırlanıyor...',
-                'redirect' => route('exam.edit', ['id' => $exam->id, 'auto_layout' => 'true'])
+                'redirect' => route('exam.edit', ['id' => $exam->id]) // TEMİZ URL
             ]);
 
         } catch (\Exception $e) {

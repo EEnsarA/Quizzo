@@ -69,6 +69,7 @@
                 <button @click="$dispatch('notify', { message: ' Lütfen giriş yapın!', type: 'warning' })"
                     class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium shadow-lg transition-colors flex items-center gap-2"><i
                         class="fa-solid fa-download"></i> PDF</button>
+
             @endauth
         </div>
     </header>

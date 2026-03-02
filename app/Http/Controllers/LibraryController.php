@@ -35,13 +35,24 @@ class LibraryController extends Controller
         });
 
         // exams
-        $examPapers = ExamPaper::with('categories')
+        // Tüm kağıtları (Sınavlar + Özetler) tek sorguda çek
+        $allPapers = ExamPaper::with('categories')
                     ->where('user_id', $user->id)
                     ->latest()
                     ->get();
 
+        // SADECE SINAV KAĞITLARI (document_type'ı study_guide OLMAYANLAR)
+        $examPapers = $allPapers->filter(function ($paper) {
+            return $paper->document_type !== 'study_guide';
+        });
 
-        return view("pages.library", compact("myQuizzos", "libraryQuizzos", "examPapers"));
+        // SADECE DERS NOTLARI VE ÖZETLER
+        $studyGuides = $allPapers->filter(function ($paper) {
+            return $paper->document_type === 'study_guide';
+        });
+
+
+        return view("pages.library", compact("myQuizzos", "libraryQuizzos", "examPapers", "studyGuides"));
     }
 
     public function add_library(Quiz $quiz)

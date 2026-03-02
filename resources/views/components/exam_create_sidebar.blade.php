@@ -113,55 +113,70 @@
         </div>
 
 
-        <div class="pt-4 border-t border-[#3e3e42]">
-            <h4 class="text-xs font-bold text-blue-400 uppercase mb-3 tracking-wider">AI ILE SORU OLUSTUR</h4>
+        <div class="pt-4 border-t border-[#3e3e42] flex flex-col gap-3">
 
+            <div>
+                <h4 class="text-[10px] font-bold text-blue-400 uppercase mb-2 tracking-widest flex items-center gap-2">
+                    AI Araçları
+                </h4>
+                <button @click="aiBatchModalOpen = true"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-2.5 px-3 rounded-lg shadow-md flex items-center justify-center gap-2 transition-all group">
+                    <i class="fa-solid fa-wand-magic-sparkles group-hover:animate-pulse text-xs"></i>
+                    <span class="font-bold text-xs uppercase tracking-wide">Soru Sihirbazı</span>
+                </button>
+            </div>
 
-            <button @click="aiBatchModalOpen = true"
-                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3 rounded-lg shadow-lg flex items-center justify-center gap-2 mb-4 transition-all group">
-                <i class="fa-solid fa-wand-magic-sparkles group-hover:animate-pulse"></i>
-                <span class="font-bold text-sm">AI Soru Sihirbazı</span>
-            </button>
+            <div>
+                <button @click="generateAnswerKey()"
+                    class="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white py-2.5 px-3 rounded-lg shadow-md flex items-center justify-center gap-2 transition-all">
+                    <i class="fa-solid fa-key text-xs"></i>
+                    <span class="font-bold text-xs uppercase tracking-wide">Cevap Anahtarı Oluştur</span>
+                </button>
+            </div>
 
-
-            <div class="space-y-2 border border-dashed border-gray-600 rounded-lg min-h-32 p-4">
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-[10px] text-gray-500 font-bold uppercase">Soru Havuzu</span>
-                    <button @click="aiPoolGroups = []" class="text-[10px] text-red-400 hover:underline">Temizle</button>
+            <div class="mt-2 space-y-2 border border-dashed border-gray-600 rounded-lg min-h-32 p-3 bg-[#1e1e1e]">
+                <div class="flex justify-between items-center mb-2 pb-1 border-b border-gray-700">
+                    <span
+                        class="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group"></i> Soru Havuzu
+                    </span>
+                    <button @click="aiPoolGroups = []"
+                        class="text-[10px] text-red-400 hover:text-red-300 transition-colors">Temizle</button>
                 </div>
-                <div x-show="aiPoolGroups.length <= 0" class="w-full min-h-24 flex justify-center items-center">
-                    <span class="text-[10px] text-gray-500 font-bold uppercase">Üretilen Sorular Buraya Gelecek</span>
+
+                <div x-show="aiPoolGroups.length <= 0"
+                    class="w-full min-h-20 flex flex-col justify-center items-center gap-1 opacity-50">
+                    <i class="fa-solid fa-box-open text-gray-500 text-xl"></i>
+                    <span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest text-center">Havuz
+                        Boş</span>
                 </div>
 
                 <template x-for="(group, idx) in aiPoolGroups" :key="group.id">
-
                     <div draggable="true" @dragstart="dragStart($event, group.type, idx)"
-                        class="group bg-[#333333] hover:bg-[#3e3e42] p-3 rounded-lg border border-[#3e3e42] hover:border-indigo-500 cursor-grab active:cursor-grabbing transition-all relative overflow-hidden shadow-sm">
+                        class="group bg-[#2a2a2a] hover:bg-[#333333] p-2.5 rounded-lg border border-[#3e3e42] hover:border-indigo-500 cursor-grab active:cursor-grabbing transition-all relative overflow-hidden shadow">
 
-
-                        <div class="absolute top-0 right-0 px-2 py-0.5 rounded-bl-md text-[10px] font-bold text-white shadow-sm"
+                        <div class="absolute top-0 right-0 px-2 py-0.5 rounded-bl-md text-[9px] font-bold text-white shadow-sm"
                             :class="{
-                                    'bg-green-600': group.difficulty === 'easy',
-                                    'bg-yellow-600': group.difficulty === 'medium',
-                                    'bg-red-600': group.difficulty === 'hard'
+                                    'bg-green-600/80 backdrop-blur-sm': group.difficulty === 'easy',
+                                    'bg-yellow-600/80 backdrop-blur-sm': group.difficulty === 'medium',
+                                    'bg-red-600/80 backdrop-blur-sm': group.difficulty === 'hard'
                                  }" x-text="group.difficultyLabel">
                         </div>
 
-                        <div class="flex items-center gap-2 mt-1">
-
+                        <div class="flex items-center gap-2">
                             <i :class="{
-                                    'fa-solid fa-list-ul text-green-500 text-lg' : group.typeName === 'Çoktan Seçmeli',
-                                    'fa-solid fa-align-left text-orange-500 text-lg' : group.typeName === 'Klasik',
-                                    'fa-solid fa-ellipsis text-purple-500 text-lg' : group.typeName === 'Boşluk Doldurma',
-                                    'fa-solid fa-check-double text-red-500 text-lg' : group.typeName === 'Doğru/Yanlış',
+                                    'fa-solid fa-list-ul text-green-500' : group.typeName === 'Çoktan Seçmeli',
+                                    'fa-solid fa-align-left text-orange-500' : group.typeName === 'Klasik',
+                                    'fa-solid fa-ellipsis text-purple-500' : group.typeName === 'Boşluk Doldurma',
+                                    'fa-solid fa-check-double text-red-500' : group.typeName === 'Doğru/Yanlış',
                                 }"></i>
 
-                            <div class="flex flex-col leading-tight">
+                            <div class="flex flex-col leading-tight mt-1">
                                 <span class="text-xs font-bold text-gray-200">
                                     <span x-text="group.typeName"></span>
                                 </span>
-                                <span class="text-[10px] text-gray-400">
-                                    <span class="text-indigo-400 font-bold" x-text="group.count"></span> adet kaldı
+                                <span class="text-[10px] text-gray-400 mt-0.5">
+                                    <span class="text-indigo-400 font-bold" x-text="group.count"></span> soru bekliyor
                                 </span>
                             </div>
                         </div>

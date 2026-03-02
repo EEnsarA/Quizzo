@@ -119,7 +119,7 @@ class UserController extends Controller
     public function profile()
     {
 
-        if (!Auth::check()) return redirect()->route("home");
+if (!Auth::check()) return redirect()->route("home");
 
         /** @var \App\Models\User $user */
         $user = Auth::user();
@@ -128,10 +128,21 @@ class UserController extends Controller
         $myQuizzos = $user->quizzes()
             ->withCount('results')
             ->latest()
-            ->limit(20) // Profilde çok şişmesin diye limit koyabiliriz veya paginate
+            ->limit(20)
             ->get();
 
+        // 2. Sınav Kağıtlarını Çek (Sadece 'exam' olanlar)
         $myExams = $user->examPapers()
+            ->where(function($q) {
+                $q->where('document_type', 'exam')->orWhereNull('document_type');
+            })
+            ->latest()
+            ->limit(20)
+            ->get();
+
+        // 3. Özetleri / Ders Notlarını Çek (Sadece 'study_guide' olanlar)
+        $myGuides = $user->examPapers()
+            ->where('document_type', 'study_guide')
             ->latest()
             ->limit(20)
             ->get();
@@ -142,8 +153,8 @@ class UserController extends Controller
             'rank'          => $user->rank ?? '#24'
         ];
 
-        // myExams'i de gönderiyoruz
-        return view("pages.user_profile", compact("myQuizzos", "myExams", "user", "stats"));
+        // myGuides değişkenini de View'a yolluyoruz
+        return view("pages.user_profile", compact("myQuizzos", "myExams", "myGuides", "user", "stats"));
     }
 
 

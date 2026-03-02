@@ -1,6 +1,6 @@
 @extends("layouts.app")
 
-@props(["papers", "quizzes", "categories", "activeTab" => 'papers'])
+@props(["papers", "quizzes", "categories", "activeTab" => 'quizzes', "guides"])
 
 @section('content')
 
@@ -74,22 +74,23 @@
 
                 <div class="w-full md:w-2/5 flex flex-col gap-4">
 
+                    {{-- Mavi Tema ve file-pdf --}}
                     <a href="{{ route('exam.create') }}"
-                        class="group relative p-6 bg-[#252526] hover:bg-[#2d2d30] rounded-2xl border border-gray-700 hover:border-gray-500 transition-all duration-300 hover:shadow-lg hover:shadow-gray-500/10 cursor-pointer">
+                        class="group relative p-6 bg-[#252526] hover:bg-[#2d2d30] rounded-2xl border border-gray-700 hover:border-blue-500 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer">
                         <div class="flex items-center justify-between">
                             <div>
-                                <h3 class="text-xl font-bold text-white group-hover:text-gray-300 transition">Sınav Kağıdı
+                                <h3 class="text-xl font-bold text-white group-hover:text-blue-400 transition">Sınav Kağıdı
                                     Hazırla</h3>
                                 <p class="text-sm text-gray-400 mt-1">Sürükle-bırak editör ile tasarla, PDF çıktısı al.</p>
                             </div>
                             <div
-                                class="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center text-gray-300 group-hover:scale-110 transition border border-gray-700">
-                                <i class="fa-regular fa-file-lines text-2xl"></i>
+                                class="w-12 h-12 bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-400 group-hover:scale-110 transition border border-blue-900/50">
+                                <i class="fa-solid fa-file-pdf text-2xl"></i>
                             </div>
                         </div>
                     </a>
 
-
+                    {{-- Yeşil Tema ve wifi --}}
                     <a href="{{ route('quiz.create') }}"
                         class="group relative p-6 bg-[#252526] hover:bg-[#2d2d30] rounded-2xl border border-gray-700 hover:border-green-500 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 cursor-pointer">
                         <div class="flex items-center justify-between">
@@ -104,6 +105,23 @@
                             </div>
                         </div>
                     </a>
+
+                    {{-- Gri Tema ve file-lines --}}
+                    <a href="{{ route('study_guide.create') }}"
+                        class="group relative p-6 bg-[#252526] hover:bg-[#2d2d30] rounded-2xl border border-gray-700 hover:border-gray-400 transition-all duration-300 hover:shadow-lg hover:shadow-gray-500/10 cursor-pointer">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-xl font-bold text-white group-hover:text-gray-300 transition">AI Özet & Ders
+                                    Notu</h3>
+                                <p class="text-sm text-gray-400 mt-1">Yapay zekaya saniyeler içinde özet çıkarttır.</p>
+                            </div>
+                            <div
+                                class="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 group-hover:scale-110 transition border border-gray-600">
+                                <i class="fa-regular fa-file-lines text-2xl"></i>
+                            </div>
+                        </div>
+                    </a>
+
                 </div>
             </div>
         </div>
@@ -116,24 +134,31 @@
 
                 <div class="flex flex-col sm:flex-row sm:items-center gap-6">
                     <h2 class="text-2xl font-bold text-white flex items-center gap-3 min-w-max">
-                        <i class="fa-regular"
-                            :class="activeTab === 'papers' ? 'fa-file-lines text-gray-400' : 'fa-circle-play text-green-500'"></i>
-                        <span x-text="activeTab === 'papers' ? 'Sınav Kağıtları' : 'Online Sınavlar'"></span>
+                        <span
+                            x-text="activeTab === 'papers' ? 'Sınav Kağıtları' : (activeTab === 'quizzes' ? 'Online Sınavlar' : 'Özetler ve Notlar')"></span>
                     </h2>
 
-
                     <div class="bg-[#252526] p-1 rounded-lg flex border border-gray-700 w-fit">
-
-                        <button @click="setTab('papers')"
-                            :class="activeTab === 'papers' ? 'bg-[#3e3e42] text-white shadow-sm' : 'text-gray-400 hover:text-white'"
-                            class="px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2">
-                            <i class="fa-regular fa-file-lines"></i> <span class="hidden sm:inline">Kağıtlar</span>
-                        </button>
 
                         <button @click="setTab('quizzes')"
                             :class="activeTab === 'quizzes' ? 'bg-[#3e3e42] text-white shadow-sm' : 'text-gray-400 hover:text-white'"
                             class="px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2">
-                            <i class="fa-solid fa-wifi"></i> <span class="hidden sm:inline">Online</span>
+                            <i class="fa-solid fa-wifi text-green-400"></i> <span class="hidden sm:inline">Online</span>
+                        </button>
+
+                        <button @click="setTab('papers')"
+                            :class="activeTab === 'papers' ? 'bg-[#3e3e42] text-white shadow-sm' : 'text-gray-400 hover:text-white'"
+                            class="px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-file-pdf text-blue-400"></i> <span
+                                class="hidden sm:inline">Kağıtlar</span>
+                        </button>
+
+
+                        <button @click="setTab('guides')"
+                            :class="activeTab === 'guides' ? 'bg-[#3e3e42] text-white shadow-sm' : 'text-gray-400 hover:text-white'"
+                            class="px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2">
+                            <i class="fa-regular fa-file-lines text-gray-400"></i> <span
+                                class="hidden sm:inline">Özetler</span>
                         </button>
                     </div>
                 </div>
@@ -190,8 +215,8 @@
                 @else
                     <div class="text-center py-24">
                         <div
-                            class="bg-[#252526] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-700">
-                            <i class="fa-regular fa-folder-open text-3xl text-gray-500"></i>
+                            class="bg-blue-900/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
+                            <i class="fa-solid fa-file-pdf text-3xl text-blue-500"></i>
                         </div>
                         <h3 class="text-lg text-white font-medium">Bu kriterlere uygun sınav kağıdı yok.</h3>
                         <p class="text-gray-500 text-sm mt-1">Filtreleri değiştirmeyi deneyebilirsin.</p>
@@ -212,10 +237,33 @@
                 @else
                     <div class="text-center py-24">
                         <div
-                            class="bg-[#252526] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-700">
-                            <i class="fa-solid fa-link-slash text-3xl text-gray-500"></i>
+                            class="bg-green-900/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30">
+                            <i class="fa-solid fa-wifi text-3xl text-green-500"></i>
                         </div>
                         <h3 class="text-lg text-white font-medium">Bu kriterlere uygun online sınav yok.</h3>
+                    </div>
+                @endif
+            </div>
+
+            {{-- C) ÖZETLER LISTESI --}}
+            <div x-show="activeTab === 'guides'" x-transition.opacity.duration.300ms style="display: none;">
+                @if($guides->count() > 0)
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        @foreach ($guides as $guide)
+                            <x-study_guide_card_public :guide="$guide" />
+                        @endforeach
+                    </div>
+                    <div class="mt-12">
+                        {{ $guides->appends(array_merge(request()->query(), ['tab' => 'guides']))->links() }}
+                    </div>
+                @else
+                    <div class="text-center py-24">
+                        <div
+                            class="bg-[#252526] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-700">
+                            <i class="fa-solid fa-book-open text-3xl text-gray-500"></i>
+                        </div>
+                        <h3 class="text-lg text-white font-medium">Bu kriterlere uygun ders notu veya özet yok.</h3>
+                        <p class="text-gray-500 text-sm mt-1">Hemen sağ üstten ilk özetini sen oluştur!</p>
                     </div>
                 @endif
             </div>

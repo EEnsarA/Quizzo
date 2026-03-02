@@ -24,7 +24,9 @@
         'examTitle' => isset($examPaper) ? $examPaper->title : 'Yeni Sınav Kağıdı',
         'examId' => isset($examPaper) ? $examPaper->id : null, // ID varsa Update 
         'allCategories' => $categories,
-        'documentType' => $examPaper->document_type,
+        'documentType' => isset($examPaper) ? $examPaper->document_type : '',
+        'initialCategories' => isset($examPaper) ? $examPaper->categories : [],
+        'initialDescription' => isset($examPaper) ? $examPaper->description : '',
     ]) }})" class="flex relative w-full h-[calc(100vh-64px)] bg-[#1e1e1e] font-sans overflow-hidden">
 
 
@@ -48,10 +50,19 @@
                 x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
 
                 <div class="bg-[#1e1e1e] p-4 border-b border-gray-700">
-                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-floppy-disk text-blue-500"></i> Sınavı Kaydet
-                    </h3>
-                    <p class="text-gray-400 text-xs mt-1">Sınav kağıdın için son ayarları yap.</p>
+                    @if (isset($examPaper) && $examPaper->document_type == "exam")
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+
+                            <i class="fa-solid fa-floppy-disk text-blue-500"></i> Sınavı Kaydet
+                        </h3>
+                        <p class="text-gray-400 text-xs mt-1">Sınav kağıdın için son ayarları yap.</p>
+                    @else
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+
+                            <i class="fa-solid fa-floppy-disk text-blue-500"></i> Özeti Kaydet
+                        </h3>
+                        <p class="text-gray-400 text-xs mt-1">Özet için son ayarları yap.</p>
+                    @endif
                 </div>
 
                 <div class="p-6 space-y-5">
@@ -103,8 +114,8 @@
                                         <button @click="toggleCategory(cat.id)"
                                             class="px-2 py-1.5 rounded text-[10px] font-medium transition-all border select-none text-left truncate flex items-center justify-between group"
                                             :class="tempCategories.includes(cat.id) 
-                                        ? 'bg-blue-900/30 border-blue-500 text-blue-400' 
-                                        : 'bg-[#2d2d2d] border-gray-600 text-gray-300 hover:border-gray-500 hover:text-white'">
+                                                                            ? 'bg-blue-900/30 border-blue-500 text-blue-400' 
+                                                                            : 'bg-[#2d2d2d] border-gray-600 text-gray-300 hover:border-gray-500 hover:text-white'">
 
                                             <span x-text="cat.name"></span>
 

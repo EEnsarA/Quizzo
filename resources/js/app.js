@@ -567,8 +567,8 @@ Alpine.data("examCanvas", (props = {}) => ({
 
     isLoading: false,
     pendingAction: null, // İndir, Ön İzle veya Kütüphane eylemini hafızada tutmak için
-    tempCategories: [],
-    tempDescription: '',
+    tempCategories: props.initialCategories || [],
+    tempDescription: props.initialDescription || '',
     initialCategories: props.initialCategories || [], // Blade'den gelen (Config değil props kullanıyoruz)
     initialDescription: props.initialDescription || '',
     allCategories: props.allCategories || [],
@@ -597,12 +597,17 @@ Alpine.data("examCanvas", (props = {}) => ({
 
     // Toggle Fonksiyonu (Eskisiyle aynı kalabilir ama garanti olsun diye buraya da yazıyorum)
     toggleCategory(id) {
-        if (this.tempCategories.includes(id)) {
-            this.tempCategories = this.tempCategories.filter(c => c !== id);
+        const targetId = Number(id); // Kesinlikle sayıya çeviriyoruz
+
+        // Mevcut dizideki her şeyi de sayıya çeviriyoruz ki eşitlik bozulmasın
+        const currentCats = this.tempCategories.map(c => Number(c));
+
+        if (currentCats.includes(targetId)) {
+            // Varsa, filtrele ve YENİ bir dizi ata (Alpine.js bunu anında algılar)
+            this.tempCategories = currentCats.filter(c => c !== targetId);
         } else {
-            this.tempCategories.push(id);
-            // Seçince aramayı temizlemek istersen:
-            // this.categorySearch = ''; 
+            // Yoksa, mevcut dizinin sonuna ekleyip YENİ dizi ata
+            this.tempCategories = [...currentCats, targetId];
         }
     },
 
@@ -660,10 +665,31 @@ Alpine.data("examCanvas", (props = {}) => ({
         if (quizData.questions) {
             quizData.questions.forEach((q, index) => {
                 let optionsList = q.answers ? q.answers.map(a => a.answer_text) : [];
+
+                // --- CEVAP ANAHTARI İÇİN EKSİK OLAN KISIM BURASI ---
+                let correctAnswerLetter = '';
+                if (q.answers) {
+                    // Veritabanında doğru cevabı tutan kolonun "is_correct" olduğunu varsayıyorum.
+                    // (Eğer senin veritabanında "isCorrect" veya "correct" ise burayı ona göre değiştir)
+                    let correctIndex = q.answers.findIndex(a => a.is_correct == 1 || a.is_correct === true);
+
+                    if (correctIndex !== -1) {
+                        const letters = ['A', 'B', 'C', 'D', 'E'];
+                        correctAnswerLetter = letters[correctIndex] || ''; // 0. index A, 1. index B olur...
+                    }
+                }
+                // ----------------------------------------------------
+
                 this.elements.push({
                     id: Date.now() + Math.random(),
                     page: 1, type: 'multiple_choice',
-                    content: { number: `${index + 1}.`, question: q.question_text, point: q.points || '10', options: optionsList },
+                    content: {
+                        number: `${index + 1}.`,
+                        question: q.question_text,
+                        point: q.points || '10',
+                        options: optionsList,
+                        answer_key: correctAnswerLetter // İŞTE ŞİMDİ EKLENDİ!
+                    },
                     x: 0, y: 0, w: 700, h: 100, // Geçici değerler, autoLayout bunu dizecek
                     styles: { fontSize: 14, fontWeight: 'normal', textAlign: 'left', color: '#000', borderWidth: 0, backgroundColor: 'transparent' }
                 });
@@ -672,156 +698,192 @@ Alpine.data("examCanvas", (props = {}) => ({
 
         // Quiz'i aldık, şimdi JİLET GİBİ diz! (Varsayılan normal dizilim)
         this.autoLayout('twocolumn');
-    },
 
-    // 2. SİHİRLİ FONKSİYON: Tüm öğeleri koruyarak otomatik dizer
+        // Otomatik dizgi işlemi bittikten hemen sonra Cevap Anahtarını da otomatik oluştur!
+        setTimeout(() => {
+            this.generateAnswerKey();
+        }, 300);
+    },
+    // YENİ: METNİN GERÇEK YÜKSEKLİĞİNİ KUSURSUZ ÖLÇEN FONKSİYON
+    calculateExactHeight(el, targetWidth) {
+        let ruler = document.createElement('div');
+        ruler.style.position = 'absolute';
+        ruler.style.visibility = 'hidden'; // Ekranda görünmeyecek
+        ruler.style.width = targetWidth + 'px';
+        ruler.style.boxSizing = 'border-box';
+
+        // Elemanın font ve padding ayarlarını birebir uygula
+        ruler.style.fontSize = (el.styles?.fontSize || 14) + 'px';
+        ruler.style.fontWeight = el.styles?.fontWeight || 'normal';
+        ruler.style.fontFamily = el.styles?.fontFamily || 'Roboto, sans-serif';
+        ruler.style.padding = (el.styles?.padding || 0) + 'px';
+
+        // Taşırma ve satır atlama kuralları PDF ile aynı olmalı
+        ruler.style.whiteSpace = 'pre-wrap';
+        ruler.style.wordWrap = 'break-word';
+        ruler.style.lineHeight = '1.4';
+
+        // İçeriği ekle (Enter'ları <br>'ye çevirerek HTML'in anlamasını sağla)
+        let text = el.content || '';
+        ruler.innerHTML = text.replace(/\n/g, '<br>');
+
+        // Gizlice sayfaya ekle, boyunu ölç ve geri sil
+        document.body.appendChild(ruler);
+        let exactHeight = ruler.getBoundingClientRect().height;
+        document.body.removeChild(ruler);
+
+        // Güvenlik marjı (Alt boşluk) ekleyerek döndür
+        let bottomMargin = (el.type === 'heading') ? 25 : 15;
+        return exactHeight + bottomMargin;
+    },
+    // AUTO Layout
     autoLayout(layoutType = 'normal') {
         window.dispatchEvent(new CustomEvent('toggle-loading', { detail: true }));
 
-        // 1. TÜM ÖĞELERİ TOPLA VE SIRALA (Sistem blokları hariç)
-        // Kullanıcının eklediği başlık, resim, soru vs. HER ŞEYİ alıyoruz.
-        let userElements = this.elements.filter(el => el.type !== 'header_block' && el.type !== 'student_info');
+        // TÜM İŞLEMLERİ BU 150ms GECİKMENİN İÇİNE ALIYORUZ!
+        setTimeout(() => {
 
-        // Mantıklı bir sıraya dizelim: Önce sayfa numarası, sonra Y koordinatı (yukarıdan aşağı)
-        // Böylece hocanın araya koyduğu resimler sırasını kaybetmez!
-        userElements.sort((a, b) => {
-            if (a.page !== b.page) return a.page - b.page;
-            return a.y - b.y;
-        });
+            let userElements = this.elements.filter(el => el.type !== 'header_block' && el.type !== 'student_info');
 
-        this.elements = []; // Sayfayı sıfırla
-        this.activePage = 1;
-        this.totalPages = 1;
+            userElements.sort((a, b) => {
+                if (a.page !== b.page) return a.page - b.page;
+                return a.y - b.y;
+            });
 
-        // 2. SABİT AYARLAR
-        const PAGE_WIDTH = 794; const PAGE_HEIGHT = 1123; const MARGIN_Y = 60;
-        let isCompact = layoutType === 'compact' || layoutType === 'twocolumn';
-        let isTwoCol = layoutType === 'twocolumn';
+            this.elements = [];
+            this.activePage = 1;
+            this.totalPages = 1;
 
-        let fontSize = isCompact ? 11 : 14;
-        let optSpacing = isCompact ? 18 : 25;
-        let itemSpacing = isCompact ? 8 : 15;
+            let isStudyGuide = (this.documentType === 'study_guide');
 
-        let itemWidth = isTwoCol ? 330 : 700;
-        let MARGIN_X = isTwoCol ? 50 : 47;
-        let COL_2_X = 414;
+            const PAGE_WIDTH = 794; const PAGE_HEIGHT = 1123; const MARGIN_Y = 60;
+            let isCompact = layoutType === 'compact' || layoutType === 'twocolumn';
+            let isTwoCol = layoutType === 'twocolumn';
 
-        let currentY = MARGIN_Y;
-        let currentPage = 1;
-        let currentColumn = 1;
+            let fontSize = isCompact ? 11 : 14;
+            let optSpacing = isCompact ? 18 : 25;
+            let itemSpacing = isCompact ? 8 : 15;
 
-        // 3. BAŞLIK VE ÖĞRENCİ BİLGİSİNİ YENİDEN EKLE
-        this.elements.push({
-            id: Date.now() + Math.random(), page: currentPage, type: 'header_block',
-            content: { title: this.examTitle.toUpperCase(), faculty: 'Kurum / Okul Adı', term: 'Sınav Kağıdı' },
-            x: (PAGE_WIDTH - 600) / 2, y: currentY, w: 600, h: 80,
-            styles: { fontSize: 14, fontWeight: 'bold', textAlign: 'center', color: '#000', borderWidth: 0, backgroundColor: 'transparent' }
-        });
-        currentY += 90;
+            let itemWidth = isTwoCol ? 330 : 700;
+            let MARGIN_X = isTwoCol ? 50 : 47;
+            let COL_2_X = 414;
 
-        this.elements.push({
-            id: Date.now() + Math.random(), page: currentPage, type: 'student_info',
-            content: { label1: 'Adı Soyadı:', val1: '', label2: 'Numara:', val2: '', label3: 'Sınıfı:', val3: '', label4: 'Puan:', val4: '' },
-            x: 47, y: currentY, w: 700, h: isCompact ? 60 : 80,
-            styles: { fontSize: fontSize, fontWeight: 'normal', textAlign: 'left', color: '#000', borderWidth: 0, backgroundColor: 'transparent' }
-        });
-        currentY += isCompact ? 70 : 100;
+            let currentY = MARGIN_Y;
+            let currentPage = 1;
+            let currentColumn = 1;
 
-        let currentX = MARGIN_X;
-        let columnStartY = currentY;
-        let questionCounter = 1; // Soruları numaralandırmak için ayrı sayaç (Resimleri atlamak için)
+            this.elements.push({
+                id: Date.now() + Math.random(), page: currentPage, type: 'header_block',
+                content: {
+                    title: this.examTitle.toUpperCase(),
+                    faculty: 'Kurum / Okul Adı',
+                    term: isStudyGuide ? 'Ders Notu & Özet' : 'Sınav Kağıdı'
+                },
+                x: (PAGE_WIDTH - 600) / 2, y: currentY, w: 600, h: 80,
+                styles: { fontSize: 14, fontWeight: 'bold', textAlign: 'center', color: '#000', borderWidth: 0, backgroundColor: 'transparent' }
+            });
+            currentY += 90;
 
-        // 4. TOPLANAN TÜM ÖĞELERİ MATBAA GİBİ DİZ
-        if (userElements.length > 0) {
-            const questionTypes = ['multiple_choice', 'open_ended', 'fill_in_blanks', 'true_false'];
+            if (!isStudyGuide) {
+                this.elements.push({
+                    id: Date.now() + Math.random(), page: currentPage, type: 'student_info',
+                    content: { label1: 'Adı Soyadı:', val1: '', label2: 'Numara:', val2: '', label3: 'Sınıfı:', val3: '', label4: 'Puan:', val4: '' },
+                    x: 47, y: currentY, w: 700, h: isCompact ? 60 : 80,
+                    styles: { fontSize: fontSize, fontWeight: 'normal', textAlign: 'left', color: '#000', borderWidth: 0, backgroundColor: 'transparent' }
+                });
+                currentY += isCompact ? 70 : 100;
+            }
 
-            userElements.forEach((el) => {
+            let currentX = MARGIN_X;
+            let columnStartY = currentY;
+            let questionCounter = 1;
 
-                let estimatedHeight = 0;
-                let currentItemWidth = itemWidth;
+            if (userElements.length > 0) {
+                const questionTypes = ['multiple_choice', 'open_ended', 'fill_in_blanks', 'true_false'];
+                const textTypes = ['text', 'heading', 'sub_heading', 'box', 'code']; // YENİ: Code buraya eklendi ki cetvel ile ölçülsün
 
-                // A) EĞER BU BİR SORUYSA (Numaralandır ve Boyut Hesapla)
-                // A) EĞER BU BİR SORUYSA (Numaralandır ve Boyut Hesapla)
-                if (questionTypes.includes(el.type)) {
-                    el.content.number = `${questionCounter}.`;
-                    questionCounter++;
+                userElements.forEach((el) => {
 
-                    let qText = el.content.question || '';
-                    let optionsList = el.content.options || [];
+                    let estimatedHeight = 0;
 
-                    // --- MİNİMAL VE SIKI YÜKSEKLİK HESAPLAMASI ---
-                    // Satıra sığacak harf sayısını biraz artırdık ki gereksiz satır atlamasın
-                    let charsPerLine = isTwoCol ? 42 : 95;
-                    if (isCompact) charsPerLine += 15;
+                    if (questionTypes.includes(el.type)) {
+                        el.content.number = `${questionCounter}.`;
+                        questionCounter++;
 
-                    let lineHeight = isCompact ? 16 : 22; // Satır yükseklikleri (Eskisinden daha dar)
+                        let qText = el.content.question || '';
+                        let optionsList = el.content.options || [];
 
-                    // 1. Soru Metni: (Satır sayısı * satır yüksekliği) + 15px (Soru no ve küçük bir esneme payı)
-                    let qLines = Math.ceil((qText.length || 1) / charsPerLine);
-                    estimatedHeight = (qLines * lineHeight) + 15;
+                        let charsPerLine = isTwoCol ? 42 : 95;
+                        if (isCompact) charsPerLine += 15;
+                        let lineHeight = isCompact ? 16 : 22;
 
-                    // 2. Şıklar
-                    if (el.type === 'multiple_choice') {
-                        optionsList.forEach(opt => {
-                            let optText = opt || '';
-                            let optLines = Math.ceil((optText.length + 5) / charsPerLine) || 1;
+                        let qLines = Math.ceil((qText.length || 1) / charsPerLine);
+                        estimatedHeight = (qLines * lineHeight) + 15;
 
-                            // Şıklar arası boşluğu sadece 4 piksele düşürdük!
-                            estimatedHeight += (optLines * lineHeight) + 4;
-                        });
-                        estimatedHeight += 10; // Sorunun bitişine minik bir pay
-                    }
-                    else if (el.type === 'open_ended') {
-                        // Klasik soru boşluğunu estetik bir seviyeye çektik
-                        estimatedHeight += isCompact ? 70 : 100;
-                    }
-                    else if (el.type === 'fill_in_blanks' || el.type === 'true_false') {
-                        estimatedHeight += 20;
-                    }
+                        if (el.type === 'multiple_choice') {
+                            optionsList.forEach(opt => {
+                                let optText = opt || '';
+                                let optLines = Math.ceil((optText.length + 5) / charsPerLine) || 1;
+                                estimatedHeight += (optLines * lineHeight) + 4;
+                            });
+                            estimatedHeight += 10;
+                        }
+                        else if (el.type === 'open_ended') {
+                            estimatedHeight += isCompact ? 70 : 100;
+                        }
+                        else if (el.type === 'fill_in_blanks' || el.type === 'true_false') {
+                            estimatedHeight += 20;
+                        }
 
-                    // Soru fontunu güncel düzene göre ez
-                    el.styles.fontSize = fontSize;
-                    el.w = itemWidth;
-                }
-                // B) EĞER BU RESİM, BAŞLIK VEYA ÖZEL METİNSE
-                else {
-                    // Kullanıcının ayarladığı kendi yüksekliğini koru
-                    estimatedHeight = parseFloat(el.h) || 50;
-
-                    // Eğer çift sütuna geçilmişse ve resim sütundan genişse, resmin genişliğini sütuna uydur (Taşmayı önle)
-                    if (parseFloat(el.w) > itemWidth) {
+                        el.styles.fontSize = fontSize;
                         el.w = itemWidth;
                     }
-                }
+                    else if (textTypes.includes(el.type)) {
+                        if (el.type === 'heading') {
+                            el.styles.fontSize = 22; el.styles.fontWeight = 'bold';
+                        } else if (el.type === 'sub_heading') {
+                            el.styles.fontSize = 16; el.styles.fontWeight = 'bold';
+                        } else if (el.type !== 'code') {
+                            el.styles.fontSize = fontSize;
+                        }
 
-                let currentItemSpacing = isTwoCol ? itemSpacing + 10 : itemSpacing;
-
-                // --- TAŞMA KONTROLÜ ---
-                if (currentY + estimatedHeight > PAGE_HEIGHT - MARGIN_Y) {
-                    if (isTwoCol && currentColumn === 1) {
-                        currentColumn = 2; currentX = COL_2_X; currentY = columnStartY;
-                    } else {
-                        currentPage++; this.totalPages = currentPage; currentColumn = 1;
-                        currentX = MARGIN_X; currentY = MARGIN_Y; columnStartY = MARGIN_Y;
+                        el.w = itemWidth;
+                        estimatedHeight = this.calculateExactHeight(el, itemWidth);
                     }
-                }
+                    else {
+                        estimatedHeight = parseFloat(el.h) || 50;
+                        if (parseFloat(el.w) > itemWidth) {
+                            el.w = itemWidth;
+                        }
+                    }
 
-                // Öğeyi güncelle ve sayfaya bas
-                el.page = currentPage;
-                el.x = currentX;
-                el.y = currentY;
-                el.h = estimatedHeight;
+                    let currentItemSpacing = isTwoCol ? itemSpacing + 10 : itemSpacing;
 
-                this.elements.push(el);
+                    if (currentY + estimatedHeight > PAGE_HEIGHT - MARGIN_Y) {
+                        if (isTwoCol && currentColumn === 1) {
+                            currentColumn = 2; currentX = COL_2_X; currentY = columnStartY;
+                        } else {
+                            currentPage++; this.totalPages = currentPage; currentColumn = 1;
+                            currentX = MARGIN_X; currentY = MARGIN_Y; columnStartY = MARGIN_Y;
+                        }
+                    }
 
-                // Y koordinatını bir sonraki öğe için aşağı kaydır
-                currentY += estimatedHeight + currentItemSpacing;
-            });
-        }
+                    el.page = currentPage;
+                    el.x = currentX;
+                    el.y = currentY;
+                    el.h = estimatedHeight;
 
-        this.activePage = 1;
-        window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
-        window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Tüm öğeler otomatik hizalandı!', type: 'success' } }));
+                    this.elements.push(el);
+                    currentY += estimatedHeight + currentItemSpacing;
+                });
+            }
+
+            // İŞLEMLER BİTİNCE LOADING KAPANIR
+            this.activePage = 1;
+            window.dispatchEvent(new CustomEvent('toggle-loading', { detail: false }));
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Belge otomatik hizalandı!', type: 'success' } }));
+
+        }, 150); // BÜTÜN DİZGİ KODU BU SÜSLÜ PARANTEZİN İÇİNDE KALMALI
     },
 
 
@@ -1104,6 +1166,78 @@ Alpine.data("examCanvas", (props = {}) => ({
         this.selectedId = newItem.id;
     },
 
+    generateAnswerKey() {
+        // 1. Sadece soru olanları ve içinde cevap (answer_key) olanları filtrele
+        const questionTypes = ['multiple_choice', 'open_ended', 'true_false', 'fill_in_blanks'];
+        let questions = this.elements.filter(el => questionTypes.includes(el.type) && el.content && el.content.answer_key);
+
+        if (questions.length === 0) {
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Cevap anahtarı oluşturulacak soru bulunamadı.', type: 'warning' } }));
+            return;
+        }
+
+        // 2. Soruları sayfadaki dizilişlerine (Y koordinatına) göre sırala
+        questions.sort((a, b) => {
+            if (a.page !== b.page) return a.page - b.page;
+            return a.y - b.y;
+        });
+
+        // 3. En sona yepyeni bir sayfa ekle
+        this.addPage();
+        let targetPage = this.totalPages;
+        const PAGE_WIDTH = 794;
+        const MARGIN_X = 47; // Sınav kağıdının sol boşluk standardı
+
+        // 4. "CEVAP ANAHTARI" Başlığını ekle (Tam ortaya hizalı)
+        this.addItem('heading', PAGE_WIDTH / 2, 100);
+        let header = this.elements[this.elements.length - 1];
+        header.content = 'CEVAP ANAHTARI';
+        header.page = targetPage;
+        header.styles.textAlign = 'center';
+        header.styles.color = '#d32f2f'; // Öğretmen kırmızısı
+        header.y = 80; // Biraz daha yukarı aldık
+
+        // 5. Her soruyu ve cevabını alt alta diz
+        let currentY = 160;
+        questions.forEach(q => {
+            let qNum = q.content.number || '';
+            let qText = q.content.question || '';
+            let ans = q.content.answer_key;
+
+            this.addItem('text', PAGE_WIDTH / 2, currentY);
+            let textItem = this.elements[this.elements.length - 1];
+
+            // METİN İÇERİĞİ: Soru + Alt Satıra Cevap
+            textItem.content = `${qNum} ${qText}\n\nCevap: ${ans}`;
+
+            // TASARIM VE HİZALAMA DÜZELTMELERİ
+            textItem.page = targetPage;
+            textItem.w = 700; // Genişliği tam kağıt boyu yaptık
+            textItem.x = MARGIN_X; // Sola sıfırladık (Taşmayı önler!)
+            textItem.y = currentY; // Y eksenini kesinleştirdik
+            textItem.styles.fontSize = 14; // Yazıları büyüttük (12'den 14'e)
+            textItem.styles.fontWeight = 'bold'; // Daha belirgin yaptık
+            textItem.styles.textAlign = 'left'; // Sola hizaladık
+
+            // Öğenin tam yüksekliğini hesapla (ki yazılar birbirine girmesin)
+            let exactHeight = this.calculateExactHeight(textItem, 700);
+            textItem.h = exactHeight;
+
+            // Bir sonraki soru için boşluk ekle (Araları daha açık ve ferah olsun)
+            currentY += exactHeight + 25;
+
+            // Eğer sayfa taştıysa (Örn: 1020px'i geçtiyse) yeni sayfaya geç
+            if (currentY > 1020) {
+                this.addPage();
+                targetPage = this.totalPages;
+                currentY = 100; // Yeni sayfanın başından devam et
+            }
+        });
+
+        // 6. Focus'u direkt cevap anahtarı sayfasına gönder ve bildirim ver
+        this.activePage = targetPage;
+        window.dispatchEvent(new CustomEvent('notify', { detail: { message: 'Cevap anahtarı başarıyla eklendi!', type: 'success' } }));
+    },
 
     addAiRequest() {
 
@@ -1174,6 +1308,14 @@ Alpine.data("examCanvas", (props = {}) => ({
                     if (group.type === 'true_false') typeLabel = 'Doğru/Yanlış';
                     if (group.type === 'fill_in_blanks') typeLabel = 'Boşluk Doldurma';
 
+                    const questionsWithAnswers = group.questions.map(q => {
+                        return {
+                            ...q,
+                            answer_key: q.answer || '' // Yapay zeka answer döndürürse onu answer_key olarak kaydet
+                        };
+                    });
+
+
                     // Havuza Ekle (Artık temizlenmiş 'group.questions' ekleniyor)
                     this.aiPoolGroups.push({
                         id: Date.now() + Math.random(),
@@ -1182,7 +1324,7 @@ Alpine.data("examCanvas", (props = {}) => ({
                         difficulty: group.difficulty,
                         difficultyLabel: group.difficulty.toUpperCase(),
                         count: group.questions.length,
-                        questions: group.questions // <-- Buraya temizlenmiş hali gidiyor
+                        questions: questionsWithAnswers // <-- Buraya temizlenmiş hali gidiyor
                     });
                 });
 
@@ -1290,6 +1432,10 @@ Alpine.data("examCanvas", (props = {}) => ({
                         return this.cleanText(noPrefix);
                     });
                     // Buraya 'return' koymuyoruz! Kod akmaya devam etmeli.
+                }
+                // --- CEVAP ANAHTARI (ANSWER KEY) GÜNCELLEMESİ ---
+                if (generatedData.answer) {
+                    item.content.answer_key = generatedData.answer;
                 }
 
                 // --- BİTİŞ İŞLEMLERİ ---
@@ -1551,7 +1697,6 @@ Alpine.data("examCanvas", (props = {}) => ({
             'fill_in_blanks': 'Boşluk Doldurma',
             'true_false': 'Doğru/Yanlış'
         };
-
         // Türkçe ismini al (İkonlar buna göre çıkıyor)
         const typeLabel = typeMap[item.type] || 'Bilinmeyen';
 
@@ -1695,6 +1840,33 @@ Alpine.data("studyGuideCreate", (props = {}) => ({
     fileName: null,
     sourceFile: null,
     isLoading: false,
+
+    allCategories: props.allCategories || [],
+    selectedCategories: props.selectedCategories || [],
+    categorySearch: '',
+
+    toggleCategory(id) {
+        if (this.selectedCategories.includes(id)) {
+            this.selectedCategories = this.selectedCategories.filter(c => c !== id);
+        } else {
+            this.selectedCategories.push(id);
+        }
+    },
+
+    get filteredCategories() {
+        if (this.categorySearch === '') {
+            return this.allCategories;
+        }
+        const search = this.categorySearch.toLocaleLowerCase('tr-TR');
+        return this.allCategories.filter(cat =>
+            cat.name.toLocaleLowerCase('tr-TR').includes(search)
+        );
+    },
+
+    getCategoryName(id) {
+        const cat = this.allCategories.find(c => c.id == id);
+        return cat ? cat.name : 'Bilinmeyen';
+    },
 
     // Dosya seçildiğinde çalışır
     setFile(event) {

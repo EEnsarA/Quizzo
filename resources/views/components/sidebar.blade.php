@@ -25,7 +25,7 @@
                 <li>
                     <a href="{{ route('profile') }}"
                         class="flex items-center py-3 px-3 rounded transition-all whitespace-nowrap group
-                                                                       {{ request()->routeIs('profile*') ? 'bg-gray-700' : 'hover:bg-gray-700' }}">
+                                                                           {{ request()->routeIs('profile*') ? 'bg-gray-700' : 'hover:bg-gray-700' }}">
                         <div class="w-6 text-center"><i class="fa fa-user"></i></div>
                         <span x-show="$store.sidebar.open" x-transition.opacity.duration.300 class="ml-3 font-medium">
                             {{ Str::limit(Auth::user()->name, 15) ?? 'My Profile' }}
@@ -36,7 +36,7 @@
                 <li>
                     <a href="{{ route('library.show') }}"
                         class="flex items-center py-3 px-3 rounded transition-all whitespace-nowrap group
-                                                                       {{ request()->routeIs('library*') ? 'bg-gray-700' : 'hover:bg-gray-700' }}">
+                                                                           {{ request()->routeIs('library*') ? 'bg-gray-700' : 'hover:bg-gray-700' }}">
                         <div class="w-6 text-center"><i class="fa-solid fa-book"></i></div>
                         <span x-show="$store.sidebar.open" x-transition.opacity.duration.300
                             class="ml-3 font-medium">Library</span>
@@ -83,14 +83,7 @@
             </li>
 
 
-            <li>
-                <a href="{{ route('test') }}"
-                    class="flex items-center py-3 px-3 rounded transition-all whitespace-nowrap hover:bg-gray-700 group">
-                    <div class="w-6 text-center"><i class="fa-solid fa-hammer"></i></div>
-                    <span x-show="$store.sidebar.open" x-transition.opacity.duration.300
-                        class="ml-3 font-medium">Test</span>
-                </a>
-            </li>
+
 
         </ul>
     </nav>

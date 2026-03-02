@@ -19,16 +19,16 @@
                 });
         }
     }"
-    class="bg-[#252526] border border-gray-700 rounded-xl overflow-hidden shadow-lg hover:border-blue-500 hover:shadow-blue-900/20 transition-all duration-300 group h-full flex flex-col relative">
+    class="bg-[#252526] border border-gray-700 rounded-xl overflow-hidden shadow-lg hover:border-gray-500 hover:shadow-gray-700/20 transition-all duration-300 group h-full flex flex-col relative">
 
     <div class="p-5 flex flex-col h-full">
 
         <div class="flex justify-between items-start mb-3">
 
-            {{-- GÜNCELLENDİ: Mavi Tema ve PDF İkonu --}}
+            {{-- GÜNCELLENDİ: Gri Tema ve File-Lines İkonu --}}
             <div
-                class="bg-blue-900/20 text-blue-400 p-2 rounded-lg border border-blue-500/10 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
-                <i class="fa-solid fa-file-pdf text-xl px-1"></i>
+                class="bg-gray-800 text-gray-300 p-2 rounded-lg border border-gray-600 group-hover:bg-gray-600 group-hover:text-white transition-colors duration-300">
+                <i class="fa-regular fa-file-lines text-xl px-1"></i>
             </div>
 
             <div class="flex flex-col items-end gap-2">
@@ -79,9 +79,9 @@
             </p>
 
             <div class="space-y-2">
-                {{-- GÜNCELLENDİ: Mavi Düzenle Butonu --}}
+                {{-- GÜNCELLENDİ: Gri Düzenle Butonu --}}
                 <a href="{{ route('exam.edit', $paper->id) }}"
-                    class="block w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold py-2 rounded-lg text-center transition shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2">
+                    class="block w-full bg-gray-600 hover:bg-gray-500 text-white text-sm font-bold py-2 rounded-lg text-center transition shadow-lg shadow-gray-900/20 flex items-center justify-center gap-2">
                     <i class="fa-solid fa-pen-to-square"></i> Düzenle
                 </a>
 
@@ -99,8 +99,7 @@
                     </button>
 
                     <form action="{{ route('exam.delete', $paper->id) }}" method="POST"
-                        onsubmit="return confirm('Bu sınav kağıdını silmek istediğine emin misin?');"
-                        class="h-full block">
+                        onsubmit="return confirm('Bu ders notunu silmek istediğine emin misin?');" class="h-full block">
                         @csrf
                         @method('DELETE')
                         <button type="submit" title="Sil"
