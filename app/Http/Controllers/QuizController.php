@@ -34,55 +34,83 @@ class QuizController extends Controller
 
     public function show_quiz(Quiz $quiz)
     {
-        $filters = request()->input("filters", []);
-
-        $rankings = $quiz->rankings($filters);
-
-
-        if (Auth::check()) {
-            $current_user_id = Auth::id();
-        } else {
-            $current_user_id = session()->getId();
-        }
-
-        return view("pages.quiz", compact("quiz", "rankings", "current_user_id"));
-    }
-
-    public function start_quiz(Quiz $quiz)
-    {
+        $quiz->load("user"); 
 
         $user = Auth::user();
         $sessionId = session()->getId();
+
+        // Kullanıcının bu quizdeki geçmişini çekelim
+        $userAttempts = QuizResult::where('quiz_id', $quiz->id)
+            ->when(Auth::check(), fn($q) => $q->where('user_id', $user->id))
+            ->when(!Auth::check(), fn($q) => $q->where('session_id', $sessionId))
+            ->get();
+
+        // Herhangi bir modda (exam veya learning) daha önceden çözmüş mü?
+        $hasPreviousAttempt = $userAttempts->isNotEmpty();
+        $isOwnQuiz = (Auth::check() && $quiz->user_id === Auth::id() && !$quiz->is_ai_generated);
+
+        // --- UYARI MANTIĞI ---
+        $showRankWarning = false;
+        $rankWarningText = "";
+
+        if ($hasPreviousAttempt) {
+            $showRankWarning = true;
+            $rankWarningText = "Bu quizi daha önce çözdüğünüz için sonucunuz sıralamaya yansımayacaktır.";
+        } elseif ($isOwnQuiz) {
+            $showRankWarning = true;
+            $rankWarningText = "Kendi hazırladığınız quizlerde sıralamaya katılamazsınız.";
+        }
+
+        $filters = request()->input("filters", []);
+        $rankings = $quiz->rankings($filters);
+        $current_user_id = Auth::check() ? Auth::id() : $sessionId;
+
+        return view("pages.quiz", compact("quiz", "rankings", "current_user_id", "showRankWarning", "rankWarningText"));
+    }
+    public function start_quiz(Request $request, Quiz $quiz) // DİKKAT: Request eklendi
+    {
+        $user = Auth::user();
+        $sessionId = session()->getId();
         $is_new_attempt = false;
-        // zaten önceden oluşturulmuşsa 
+        
+        // URL'den modu al, eğer yoksa varsayılan olarak 'exam' (Sınav) kabul et
+        $mode = $request->query('mode', 'exam'); 
+
+        // Zaten önceden oluşturulmuş, bitmemiş bir attempt var mı? (Aynı modda olmalı!)
         $quiz_result = QuizResult::where("quiz_id", $quiz->id)
             ->when(Auth::check(), fn($q) => $q->where('user_id', $user->id))
             ->when(!Auth::check(), fn($q) => $q->where('session_id', $sessionId))
+            ->where('mode', $mode) // DİKKAT: Artık modlara göre ayırıyoruz
             ->where('time_spent', 0)
             ->first();
 
-
-        //?  time_spenti doğru hesaplamak için started_at'i quiz başlatıldığı an doldurup kaydediyorum 
-
-        // yeni oluşturuluyor ise
+        // Yeni oluşturuluyor ise
         if (!$quiz_result) {
             $is_new_attempt = true;
             $attemptNumber = QuizResult::where('quiz_id', $quiz->id)
                 ->when(Auth::check(), fn($q) => $q->where('user_id', $user->id))
                 ->when(!Auth::check(), fn($q) => $q->where('session_id', $sessionId))
+                ->where('mode', $mode) // Sadece o moddaki deneme sayısını bul
                 ->count() + 1;
-
 
             $quiz_result = QuizResult::create([
                 "quiz_id"        => $quiz->id,
                 'user_id'        => Auth::id(), // guest ise null
                 'session_id'     => Auth::check() ? null : $sessionId,
                 "attempt_number" => $attemptNumber,
+                "mode"           => $mode, // YENİ: Veritabanına modu kaydediyoruz
                 "started_at"     => now()
             ]);
         }
 
         $quiz->load("questions.answers");
+        
+        // MOD'A GÖRE İLGİLİ BLADE DOSYASINA YÖNLENDİR
+        if ($mode === 'learning') {
+            return view("pages.quiz_learning", compact("quiz", "quiz_result", "is_new_attempt"));
+        }
+
+        // Varsayılan Sınav Modu
         return view("pages.quiz_start", compact("quiz", "quiz_result", "is_new_attempt"));
     }
 
@@ -141,8 +169,17 @@ class QuizController extends Controller
             'time_spent'     => $timespent,
         ]);
 
-        // Kullanıcı için Çözüm olduğu an Librarye Ekleme ve UserLibrary tablosunu güncelleme
-        if (Auth::check()) {
+        // --- BACKEND HİLE KORUMASI ---
+        // Öğrencinin bu quizde BUNDAN ÖNCEKİ (şu anki $quiz_result hariç) herhangi bir denemesi var mı?
+        $hasPriorAttempt = QuizResult::where('quiz_id', $quiz->id)
+            ->where('user_id', Auth::id())
+            ->where('id', '!=', $quiz_result->id) // Şu anki bitirdiği denemeyi sayma
+            ->exists();
+
+        $isOwnQuiz = (Auth::check() && $quiz->user_id === Auth::id() && !$quiz->is_ai_generated);
+
+        // Puanı Kütüphaneye (ve sıralamaya) SADECE ilk denemesiyse ve kendi quizi değilse kaydet!
+        if (Auth::check() && $quiz_result->mode === 'exam' && !$hasPriorAttempt && !$isOwnQuiz) {
             $userId = Auth::id();
 
             UserLibrary::updateOrCreate(
@@ -152,12 +189,17 @@ class QuizController extends Controller
                 ],
                 [
                     "is_completed" => true,
-                    "score" => $quiz_result->net,
+                    "score" => $quiz_result->net, 
                     "time_spent" => $quiz_result->time_spent,
                 ]
             );
         }
 
+        if ($quiz_result->mode === 'learning') {
+            return response()->json([
+                "redirect" => route("quiz.learning.result", $quiz_result->id) // YENİ ROTA
+            ]);
+        }
 
         return response()->json([
             "redirect" => route("quiz.result", $quiz_result->id)
@@ -169,9 +211,41 @@ class QuizController extends Controller
         $result->load('quiz');
 
         $filters = request()->input("filters", []);
-        $rankings =  $result->quiz->rankings($filters);
+        $rankings = $result->quiz->rankings($filters);
 
-        return view('pages.quiz_result', compact("result", "rankings"));
+        // --- SIRALAMA UYARISI MANTIĞI ---
+        $showRankWarning = false;
+        
+        // 1. Kullanıcının (veya Misafirin) bu quizden DAHA ÖNCE çözdüğü bir kayıt var mı?
+        $hasPriorAttempt = QuizResult::where('quiz_id', $result->quiz_id)
+            ->when(Auth::check(), fn($q) => $q->where('user_id', Auth::id()))
+            ->when(!Auth::check(), fn($q) => $q->where('session_id', session()->getId()))
+            ->where('id', '!=', $result->id) // Şu anki sonucu sayma
+            ->where('created_at', '<', $result->created_at) // Zamansal olarak önceden çözmüş mü?
+            ->exists();
+            
+        // 2. Kullanıcının kendi quizi mi? (Misafirlerin kendi quizi olamaz, bu yüzden Auth::check() şart)
+        $isOwnQuiz = (Auth::check() && $result->quiz->user_id === Auth::id() && !$result->quiz->is_ai_generated);
+
+        // Eğer önceden çözdüyse VEYA kendi quiziyse uyarıyı göster
+        if ($hasPriorAttempt || $isOwnQuiz) {
+            $showRankWarning = true;
+        }
+
+        return view('pages.quiz_result', compact("result", "rankings", "showRankWarning"));
+    }
+    public function show_learning_result(QuizResult $result)
+    {
+        // Güvenlik kontrolü: Eğer bu bir sınav sonucuysa, normal sonuç sayfasına şutla
+        if ($result->mode !== 'learning') {
+            return redirect()->route('quiz.result', $result->id);
+        }
+
+        // Soru ve cevap detaylarını getirmeliyiz ki analiz sayfasında gösterebilelim
+        $result->load(['quiz.questions.answers']);
+
+        
+        return view('pages.quiz_learning_result', compact("result"));
     }
 
     public function add_quiz(Request $request)
@@ -461,8 +535,16 @@ class QuizController extends Controller
                 "content": "Soru metni...",
                 "points": 5,
                 "answers": [
-                    { "answer_content": "Seçenek A", "is_correct": false },
-                    { "answer_content": "Seçenek B", "is_correct": true }
+                    { 
+                        "answer_content": "Seçenek A", 
+                        "is_correct": false, 
+                        "explanation": "Bu seçenek yanlıştır çünkü..." 
+                    },
+                    { 
+                        "answer_content": "Seçenek B", 
+                        "is_correct": true, 
+                        "explanation": "Bu seçenek doğrudur çünkü..." 
+                    }
                 ]
                 }
             ]
@@ -486,6 +568,7 @@ class QuizController extends Controller
         3. ZORLUK: \"{$request->difficulty}\" (Lütfen bu seviyeye tam uy).
         4. ADET: Tam olarak {$request->number_of_questions} soru.
         5. SEÇENEK: Her soruda {$request->number_of_options} seçenek.
+        6. AÇIKLAMALAR (ÇOK ÖNEMLİ): Öğrencinin konuyu kavraması için her bir şıkka özel 'explanation' (açıklama) yazmalısın. Doğru şıkkın açıklamasında 'Bu doğrudur çünkü...', yanlış şıkların açıklamasında ise öğrencinin neden bu çeldiriciye düşebileceğini ve 'Bunun yanlış olmasının sebebi...' şeklinde öğretici kısa metinler yaz.
         
         ÇIKTI FORMATI: Sadece ve sadece aşağıdaki JSON yapısında çıktı ver. Başka hiçbir metin, başlık veya açıklama yazma.";
 
@@ -564,6 +647,7 @@ class QuizController extends Controller
             'wrong_to_correct_ratio' => $request->wrong_to_correct_ratio ?? 0,
             'img_url' => $path,
             'user_id' => Auth::id(),
+            "is_ai_generated" => true,
         ]);
 
         if ($request->has('categories')) {
@@ -583,6 +667,7 @@ class QuizController extends Controller
                     $question->answers()->create([
                         'answer_text' => $a['answer_content'],
                         'is_correct' => (bool)$a['is_correct'],
+                        'explanation' => $a['explanation'] ?? null, 
                     ]);
                 }
             }

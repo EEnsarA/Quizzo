@@ -28,7 +28,6 @@ Alpine.store("sidebar", {
 */
 
 //? Quiz Player
-//? Quiz Player
 Alpine.data("quizPlayer", (props) => ({
     active: 0,
     answers: {},
@@ -137,6 +136,151 @@ Alpine.data("quizPlayer", (props) => ({
     }
 }));
 
+//? Quiz Learning Player
+Alpine.data("learningPlayer", (props) => ({
+    active: 0,
+    totalQuestions: props.total,
+    quizId: props.id,
+    checkUrl: props.checkUrl,     // Backend URL'si eklendi
+    token: props.token,           // CSRF Token eklendi
+    storageKey: 'quiz_learning_state_' + props.id,
+
+    firstAnswers: {},
+    openedExplanations: [],
+
+    init() {
+        const savedState = localStorage.getItem(this.storageKey);
+        if (savedState) {
+            try {
+                const parsed = JSON.parse(savedState);
+                this.active = parsed.active !== undefined ? parsed.active : 0;
+                this.firstAnswers = parsed.firstAnswers || {};
+                this.openedExplanations = parsed.openedExplanations || [];
+            } catch (e) {
+                console.error("Kayıtlı durum okunamadı:", e);
+            }
+        }
+
+        this.$watch('active', () => {
+            this.saveState();
+        });
+    },
+
+    saveState() {
+        const state = {
+            active: this.active,
+            firstAnswers: this.firstAnswers,
+            openedExplanations: this.openedExplanations
+        };
+        localStorage.setItem(this.storageKey, JSON.stringify(state));
+    },
+
+    // DİKKAT: qId (Soru ID) parametresi eklendi
+    selectAnswer(qIndex, qId, aId, isCorrect, correctOptionId) {
+        let key = qIndex + '_' + aId;
+
+        // İLK DEFA CEVAP VERİLİYORSA:
+        if (!this.firstAnswers[qIndex]) {
+            // Soru ID'sini de (qId) kaydediyoruz ki Backend'e yollayabilelim
+            this.firstAnswers[qIndex] = { qId: qId, aId: aId, correct: isCorrect };
+
+            if (!this.openedExplanations.includes(key)) {
+                this.openedExplanations.push(key);
+            }
+
+            if (!isCorrect) {
+                let correctKey = qIndex + '_' + correctOptionId;
+                if (!this.openedExplanations.includes(correctKey)) {
+                    this.openedExplanations.push(correctKey);
+                }
+            }
+        }
+        else {
+            if (this.openedExplanations.includes(key)) {
+                this.openedExplanations = this.openedExplanations.filter(k => k !== key);
+            } else {
+                this.openedExplanations.push(key);
+            }
+        }
+
+        this.saveState();
+    },
+
+    isExplanationOpen(qIndex, aId) { return this.openedExplanations.includes(qIndex + '_' + aId); },
+
+    getOptionClass(qIndex, aId, isCorrect) {
+        let first = this.firstAnswers[qIndex];
+        if (!first) return 'bg-[#1e1e1e] border-gray-700 hover:border-gray-500 text-gray-200';
+        if (first.aId === aId) { // id yerine aId oldu
+            return isCorrect ? 'bg-emerald-900/20 border-emerald-500 text-emerald-400' : 'bg-rose-900/20 border-rose-500 text-rose-400';
+        }
+        if (isCorrect) return 'bg-emerald-900/10 border-emerald-500/50 text-emerald-400';
+        if (this.isExplanationOpen(qIndex, aId)) return 'bg-[#252526] border-indigo-500/30 text-gray-300';
+        return 'bg-[#161616] border-[#2d2d2d] text-gray-500 opacity-60 hover:opacity-100';
+    },
+
+    getIconClass(qIndex, aId, isCorrect) {
+        let first = this.firstAnswers[qIndex];
+        if (!first) return 'bg-gray-800 border-gray-600 text-gray-400 group-hover:text-white';
+        if (first.aId === aId) { // id yerine aId oldu
+            return isCorrect ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-rose-500 text-white border-rose-400';
+        }
+        if (isCorrect) return 'text-emerald-400 border-emerald-500/50 bg-gray-800';
+        if (this.isExplanationOpen(qIndex, aId)) return 'text-indigo-400 border-indigo-500/30 bg-gray-800';
+        return 'bg-gray-800 border-gray-700 text-gray-600';
+    },
+
+    showStatusIcon(qIndex, aId, isCorrect) {
+        let first = this.firstAnswers[qIndex];
+        if (!first) return false;
+        return (first.aId === aId) || isCorrect; // id yerine aId oldu
+    },
+
+    getSidebarClass(index) {
+        if (this.active === index) return 'border-indigo-500 bg-indigo-500 text-white shadow-md scale-105 z-10';
+        if (this.firstAnswers[index]) {
+            return this.firstAnswers[index].correct
+                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                : 'border-rose-500/50 bg-rose-500/10 text-rose-400';
+        }
+        return 'border-gray-700 bg-gray-800 text-gray-500 hover:border-gray-500 hover:text-gray-300';
+    },
+
+    next() { if (this.active < this.totalQuestions - 1) this.active++; window.scrollTo({ top: 0 }); },
+    prev() { if (this.active > 0) this.active--; window.scrollTo({ top: 0 }); },
+    jump(index) { this.active = index; window.scrollTo({ top: 0 }); },
+
+    // YENİ: Backend'e POST atma mekanizması
+    async finish() {
+        if (!confirm('Çalışmayı bitirip sonuçları görmek istediğine emin misin?')) return;
+
+        // 1. Veriyi Backend'in beklediği formata çevir: { soru_id: cevap_id, soru_id2: cevap_id2 }
+        let payload = {};
+        for (let key in this.firstAnswers) {
+            let answerData = this.firstAnswers[key];
+            payload[answerData.qId] = answerData.aId;
+        }
+
+        try {
+            // Axios kullandıysan axios.post yapabilirsin, veya native fetch:
+            const response = await axios.post(this.checkUrl, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': this.token,
+                },
+                withCredentials: true
+            });
+
+            // Başarılıysa localStorage'ı temizle ve sonuç sayfasına (redirect url) git
+            localStorage.removeItem(this.storageKey);
+            window.location.href = response.data.redirect;
+
+        } catch (error) {
+            console.error("Sonuçlar kaydedilirken hata:", error);
+            alert("Sonuçlar kaydedilemedi. Lütfen bağlantını kontrol et.");
+        }
+    }
+}));
 
 
 

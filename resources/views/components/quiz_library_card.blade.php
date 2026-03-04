@@ -51,31 +51,45 @@
             </div>
         </div>
 
-        {{-- BUTONLAR --}}
-        <div class="mt-auto flex gap-1.5">
+{{-- BUTONLAR (2 Satırlı Yeni Düzen) --}}
+        <div class="mt-auto flex flex-col gap-2">
             @if($myQuiz)
-                {{-- DÜZENLE BUTONU --}}
-                <a href="{{ route('quiz.edit', $quiz) }}" title="Sınavı Düzenle" class="flex-1 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 py-2 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 overflow-hidden">
-                    <i class="fa-solid fa-pen-to-square"></i> <span class="truncate">Düzenle</span>
-                </a>
-
-                {{-- SINAV KAĞIDINA ÇEVİR BUTONU --}}
-                <form action="{{ route('quiz.convert_exam', $quiz->id) }}" method="POST" class="flex-1 flex" title="Sınav Kağıdına Çevir">
-                    @csrf
-                    <button type="submit" class="w-full bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-600/30 py-2 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 overflow-hidden cursor-pointer">
-                        <i class="fa-solid fa-print"></i> <span class="truncate">Kağıda Çevir</span>
-                    </button>
-                </form>
                 
-                {{-- SİL BUTONU --}}
-                <form action="{{ route('quiz.delete', $quiz->id) }}" method="POST" onsubmit="return confirm('Silmek istediğine emin misin?')" class="w-9 sm:w-10 shrink-0">
-                    @csrf @method('DELETE')
-                    <button type="submit" title="Sınavı Sil" class="w-full h-full bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/30 rounded-lg flex items-center justify-center transition cursor-pointer">
-                        <i class="fa-solid fa-trash text-xs"></i>
-                    </button>
-                </form>
+                {{-- ÜST SATIR: Ana Eylem (Çöz) ve Tehlikeli Eylem (Sil) --}}
+                <div class="flex gap-1.5 h-9">
+                    {{-- ÇÖZ BUTONU --}}
+                    <a href="{{ route('quiz.show', $quiz) }}" title="Sınavı Çöz" class="flex-1 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-600/30 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-play"></i> <span>Çöz ve Öğren</span>
+                    </a>
+                    
+                    {{-- SİL BUTONU --}}
+                    <form action="{{ route('quiz.delete', $quiz->id) }}" method="POST" onsubmit="return confirm('Silmek istediğine emin misin?')" class="w-10 shrink-0 h-full">
+                        @csrf @method('DELETE')
+                        <button type="submit" title="Sınavı Sil" class="w-full h-full bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/30 rounded-lg flex items-center justify-center transition cursor-pointer shadow-sm">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </form>
+                </div>
+
+                {{-- ALT SATIR: İkincil Eylemler (Düzenle ve Kağıda Çevir) --}}
+                <div class="flex gap-1.5 h-9">
+                    {{-- DÜZENLE BUTONU --}}
+                    <a href="{{ route('quiz.edit', $quiz) }}" title="Sınavı Düzenle" class="flex-1 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 overflow-hidden">
+                        <i class="fa-solid fa-pen-to-square"></i> <span class="truncate">Düzenle</span>
+                    </a>
+
+                    {{-- SINAV KAĞIDINA ÇEVİR BUTONU --}}
+                    <form action="{{ route('quiz.convert_exam', $quiz->id) }}" method="POST" class="flex-1 flex" title="Sınav Kağıdına Çevir">
+                        @csrf
+                        <button type="submit" class="w-full bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-600/30 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 overflow-hidden cursor-pointer">
+                            <i class="fa-solid fa-print"></i> <span class="truncate">Kağıda Çevir</span>
+                        </button>
+                    </form>
+                </div>
+
             @else
-                <a href="{{ route('quiz.start', $quiz->id) }}" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20">
+                {{-- Başkasının Quizi İse Sadece Başla Butonu (Tek Satır) --}}
+                <a href="{{ route('quiz.show', $quiz) }}" class="w-full h-10 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20">
                     <i class="fa-solid fa-play"></i> Başla
                 </a>
             @endif

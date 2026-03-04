@@ -34,6 +34,7 @@ Route::get("/quiz/{quiz}", [QuizController::class, "show_quiz"])->name("quiz.sho
 Route::get("/quiz/{quiz}/start", [QuizController::class, "start_quiz"])->name("quiz.start");
 Route::post("/quiz/{quiz:id}/check/{quiz_result}", [QuizController::class, "check_quiz"])->name("quiz.check");
 Route::get("/quiz/result/{result}", [QuizController::class, "show_result"])->name("quiz.result");
+Route::get("/quiz/learning-result/{result}", [QuizController::class, "show_learning_result"])->name("quiz.learning.result");
 
 Route::get("/exam_create", [ExamController::class, "index"])->name("exam.create");
 

@@ -22,7 +22,9 @@ class Quiz extends Model
         "number_of_options",
         "difficulty",
         "duration_minutes",
-        "wrong_to_correct_ratio"
+        "wrong_to_correct_ratio",
+        "is_ai_generated",
+        'source_files',
     ];
 
     protected static function booted()
@@ -93,5 +95,6 @@ class Quiz extends Model
 
     protected $casts = [
         "difficulty" => Difficulty::class,
+        'source_files' => 'array',
     ];
 }

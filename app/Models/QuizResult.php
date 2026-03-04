@@ -18,6 +18,7 @@ class QuizResult extends Model
         "time_spent",
         "attempt_number",
         'started_at',
+        "mode",
     ];
 
     protected $casts = [
